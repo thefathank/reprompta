@@ -31,6 +31,7 @@ serve(async (req) => {
 Analyze the media and return a JSON object using this tool call with the following fields:
 - recovered_prompt: The estimated full text prompt used to generate this media
 - model_guess: Your best guess of the AI model used (e.g. "Midjourney v6", "DALL·E 3", "Stable Diffusion XL", "Sora", "Runway Gen-3", "Flux", etc.)
+- confidence_score: A number from 0 to 100 representing how confident you are in your analysis. Consider: how clearly AI-generated the media is, how identifiable the model/style is, how specific vs generic the recovered prompt is. 90+ = very confident, 70-89 = fairly confident, 50-69 = moderate, below 50 = low confidence.
 - settings: An object with estimated generation settings like aspect_ratio, style_preset, cfg_scale, steps, seed (use string values)
 - style_tags: An array of style/aesthetic keywords (art style, lighting, composition, mood, color palette)
 - copy_ready_prompts: An object with the prompt formatted for different AI tools:
@@ -71,6 +72,7 @@ Be thorough and specific. Analyze composition, lighting, style, color palette, s
             properties: {
               recovered_prompt: { type: "string", description: "The estimated full text prompt" },
               model_guess: { type: "string", description: "Best guess of the AI model used" },
+              confidence_score: { type: "number", description: "Confidence score from 0-100 in the analysis quality" },
               settings: {
                 type: "object",
                 additionalProperties: { type: "string" },
@@ -93,7 +95,7 @@ Be thorough and specific. Analyze composition, lighting, style, color palette, s
                 additionalProperties: false,
               },
             },
-            required: ["recovered_prompt", "model_guess", "settings", "style_tags", "copy_ready_prompts"],
+            required: ["recovered_prompt", "model_guess", "confidence_score", "settings", "style_tags", "copy_ready_prompts"],
             additionalProperties: false,
           },
         },

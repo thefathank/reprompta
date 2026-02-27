@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { Copy, Check } from "lucide-react";
 import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
 
 interface Analysis {
   recovered_prompt: string;
   model_guess: string;
+  confidence_score?: number;
   settings: Record<string, string>;
   style_tags: string[];
   copy_ready_prompts: Record<string, string>;
@@ -50,8 +52,22 @@ export function AnalysisResult({ data }: { data: Analysis }) {
         </div>
       </div>
 
-      {/* Model + Settings row */}
+      {/* Confidence + Model + Settings row */}
       <div className="flex flex-wrap gap-2">
+        {data.confidence_score != null && (
+          <span
+            className={cn(
+              "rounded px-3 py-1.5 text-xs font-semibold",
+              data.confidence_score >= 80
+                ? "bg-accent/20 text-accent"
+                : data.confidence_score >= 50
+                ? "bg-yellow-500/20 text-yellow-600 dark:text-yellow-400"
+                : "bg-destructive/20 text-destructive"
+            )}
+          >
+            {data.confidence_score}% confidence
+          </span>
+        )}
         <span className="rounded bg-secondary px-3 py-1.5 text-xs font-medium text-secondary-foreground">
           {data.model_guess}
         </span>
