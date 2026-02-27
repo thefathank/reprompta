@@ -1,16 +1,52 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { toast } from "@/hooks/use-toast";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+
+const prompts = [
+  {
+    text: "A cyberpunk cityscape at dusk, neon reflections on wet pavement, volumetric fog...",
+    model: "Midjourney v6",
+    tags: ["--ar 16:9", "--style raw"],
+  },
+  {
+    text: "Elderly woman's hands shaping clay on a wheel, dramatic chiaroscuro lighting, 35mm film grain...",
+    model: "DALL·E 3",
+    tags: ["1024×1024", "vivid"],
+  },
+  {
+    text: "Isometric tiny world inside a glass terrarium, miniature waterfalls, bioluminescent plants...",
+    model: "Stable Diffusion XL",
+    tags: ["--steps 30", "--cfg 7.5"],
+  },
+  {
+    text: "Abandoned brutalist library overgrown with vines, golden hour light streaming through broken skylights...",
+    model: "Runway Gen-3",
+    tags: ["16:9", "cinematic"],
+  },
+];
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const [promptIdx, setPromptIdx] = useState(0);
   const { signIn, signUp } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setPromptIdx((i) => (i + 1) % prompts.length);
+    }, 4000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    setMousePos({ x: e.clientX, y: e.clientY });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,7 +71,20 @@ export default function Auth() {
   };
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center px-6 lg:px-16 overflow-hidden">
+    <div
+      className="relative flex min-h-screen items-center justify-center px-6 lg:px-16 overflow-hidden"
+      onMouseMove={handleMouseMove}
+    >
+      {/* Mouse-following yellow glow */}
+      <motion.div
+        className="pointer-events-none fixed h-[500px] w-[500px] rounded-full"
+        style={{
+          background: "radial-gradient(circle, hsl(45 100% 58% / 0.07), transparent 70%)",
+        }}
+        animate={{ x: mousePos.x - 250, y: mousePos.y - 250 }}
+        transition={{ type: "spring", stiffness: 80, damping: 30, mass: 0.8 }}
+      />
+
       {/* Ambient glow orbs */}
       <motion.div
         className="pointer-events-none absolute -top-[40%] -left-[20%] h-[600px] w-[600px] rounded-full opacity-[0.04]"
@@ -49,18 +98,47 @@ export default function Auth() {
         animate={{ x: [0, -20, 10, 0], y: [0, 25, -15, 0] }}
         transition={{ duration: 25, repeat: Infinity, ease: "easeInOut" }}
       />
-      <motion.div
-        className="pointer-events-none absolute top-[20%] right-[10%] h-[300px] w-[300px] rounded-full opacity-[0.02]"
-        style={{ background: "radial-gradient(circle, hsl(var(--accent)), transparent 70%)" }}
-        animate={{ x: [0, 15, -15, 0], y: [0, -10, 20, 0] }}
-        transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
-      />
 
+      {/* Cycling prompt card — background accent */}
+      <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+        <div className="relative w-[380px] translate-y-[220px] lg:translate-x-[320px] lg:translate-y-0">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={promptIdx}
+              initial={{ opacity: 0, y: 16, rotate: 1 }}
+              animate={{ opacity: 0.6, y: 0, rotate: -1.5 }}
+              exit={{ opacity: 0, y: -12, rotate: -3 }}
+              transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
+            >
+              <div className="surface-elevated rounded-lg p-6">
+                <div className="rim-light rounded-md px-4 py-3">
+                  <p className="font-mono text-xs text-muted-foreground">recovered_prompt</p>
+                  <p className="mt-1 text-sm leading-relaxed text-foreground line-clamp-2">
+                    {prompts[promptIdx].text}
+                  </p>
+                </div>
+                <div className="mt-3 flex gap-2">
+                  <span className="rounded bg-secondary px-2.5 py-1 text-xs text-secondary-foreground">
+                    {prompts[promptIdx].model}
+                  </span>
+                  {prompts[promptIdx].tags.map((tag) => (
+                    <span key={tag} className="rounded bg-secondary px-2.5 py-1 text-xs text-secondary-foreground">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+          </AnimatePresence>
+        </div>
+      </div>
+
+      {/* Auth form */}
       <motion.div
         initial={{ opacity: 0, y: 24, scale: 0.96 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
-        className="relative w-full max-w-sm"
+        className="relative z-10 w-full max-w-sm"
       >
         <h1 className="text-3xl font-bold tracking-tight">
           {isLogin ? "Welcome back" : "Create account"}
