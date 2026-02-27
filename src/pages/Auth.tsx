@@ -35,12 +35,32 @@ export default function Auth() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-6 lg:px-16">
+    <div className="relative flex min-h-screen items-center justify-center px-6 lg:px-16 overflow-hidden">
+      {/* Ambient glow orbs */}
+      <motion.div
+        className="pointer-events-none absolute -top-[40%] -left-[20%] h-[600px] w-[600px] rounded-full opacity-[0.04]"
+        style={{ background: "radial-gradient(circle, hsl(var(--foreground)), transparent 70%)" }}
+        animate={{ x: [0, 30, -10, 0], y: [0, -20, 15, 0] }}
+        transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
+      />
+      <motion.div
+        className="pointer-events-none absolute -bottom-[30%] -right-[15%] h-[500px] w-[500px] rounded-full opacity-[0.03]"
+        style={{ background: "radial-gradient(circle, hsl(var(--accent)), transparent 70%)" }}
+        animate={{ x: [0, -20, 10, 0], y: [0, 25, -15, 0] }}
+        transition={{ duration: 25, repeat: Infinity, ease: "easeInOut" }}
+      />
+      <motion.div
+        className="pointer-events-none absolute top-[20%] right-[10%] h-[300px] w-[300px] rounded-full opacity-[0.02]"
+        style={{ background: "radial-gradient(circle, hsl(var(--accent)), transparent 70%)" }}
+        animate={{ x: [0, 15, -15, 0], y: [0, -10, 20, 0] }}
+        transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
+      />
+
       <motion.div
         initial={{ opacity: 0, y: 24, scale: 0.96 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
-        className="w-full max-w-sm"
+        className="relative w-full max-w-sm"
       >
         <h1 className="text-3xl font-bold tracking-tight">
           {isLogin ? "Welcome back" : "Create account"}
