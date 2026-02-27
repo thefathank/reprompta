@@ -78,7 +78,7 @@ export default function Auth() {
           {isLogin ? "Welcome back" : "Create account"}
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          {isLogin ? "Sign in to continue." : "Get started with Promptora."}
+          {isLogin ? "Sign in to continue." : "Get started with Reprompta."}
         </p>
 
         <form onSubmit={handleSubmit} className="mt-10 space-y-5">
