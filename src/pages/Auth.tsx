@@ -35,18 +35,18 @@ export default function Auth() {
   };
 
   return (
-    <div className="flex min-h-screen items-center px-6 lg:px-16">
+    <div className="flex min-h-screen items-center justify-center px-6 lg:px-16">
       <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
+        initial={{ opacity: 0, y: 24, scale: 0.96 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
         className="w-full max-w-sm"
       >
         <h1 className="text-3xl font-bold tracking-tight">
           {isLogin ? "Welcome back" : "Create account"}
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          {isLogin ? "Sign in to continue." : "Get started with PromptLens."}
+          {isLogin ? "Sign in to continue." : "Get started with Promptora."}
         </p>
 
         <form onSubmit={handleSubmit} className="mt-10 space-y-5">
