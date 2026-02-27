@@ -101,19 +101,19 @@ export default function Auth() {
 
       {/* Cycling prompt card — background accent */}
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-        <div className="relative w-[380px] translate-y-[220px] lg:translate-x-[320px] lg:translate-y-0">
+        <div className="relative w-[460px] translate-y-[240px] lg:translate-x-[340px] lg:translate-y-0">
           <AnimatePresence mode="wait">
             <motion.div
               key={promptIdx}
               initial={{ opacity: 0, y: 16, rotate: 1 }}
-              animate={{ opacity: 0.6, y: 0, rotate: -1.5 }}
+              animate={{ opacity: 0.75, y: 0, rotate: -1.5 }}
               exit={{ opacity: 0, y: -12, rotate: -3 }}
               transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
             >
-              <div className="surface-elevated rounded-lg p-6">
+              <div className="surface-glass rounded-xl border border-border/40 p-7">
                 <div className="rim-light rounded-md px-4 py-3">
-                  <p className="font-mono text-xs text-muted-foreground">recovered_prompt</p>
-                  <p className="mt-1 text-sm leading-relaxed text-foreground line-clamp-2">
+                  <p className="font-mono text-xs text-muted-foreground tracking-wider">recovered_prompt</p>
+                  <p className="mt-2 text-sm leading-relaxed text-foreground line-clamp-3">
                     {prompts[promptIdx].text}
                   </p>
                 </div>

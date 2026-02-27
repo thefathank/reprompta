@@ -160,9 +160,9 @@ export default function Index() {
           initial={{ opacity: 0, x: 40 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 1, delay: 0.4, ease: [0.25, 0.1, 0.25, 1] as [number, number, number, number] }}
-          className="absolute right-[-4%] top-[18%] hidden w-[420px] lg:block"
+          className="absolute right-[-4%] top-[18%] hidden w-[500px] lg:block"
         >
-          <div className="relative" style={{ height: 220 }}>
+          <div className="relative" style={{ height: 260 }}>
             {prompts.map((prompt, i) => {
               const offset = (i - promptIdx + prompts.length) % prompts.length;
               const isActive = offset === 0;
@@ -185,10 +185,10 @@ export default function Index() {
                   className="absolute inset-x-0 top-0"
                   style={{ transformOrigin: "bottom left" }}
                 >
-                  <div className="surface-elevated rounded-lg p-6">
+                  <div className="surface-glass rounded-xl border border-border/40 p-7">
                     <div className="rim-light rounded-md px-4 py-3">
-                      <p className="font-mono text-xs text-muted-foreground">recovered_prompt</p>
-                      <p className="mt-1 text-sm leading-relaxed text-foreground line-clamp-2">
+                      <p className="font-mono text-xs text-muted-foreground tracking-wider">recovered_prompt</p>
+                      <p className="mt-2 text-sm leading-relaxed text-foreground line-clamp-3">
                         {prompt.text}
                       </p>
                     </div>
