@@ -1,23 +1,32 @@
 
 
-## Plan
+## Plan: Scale up recovered_prompt cards on both pages
 
-### 1. Mouse-following yellow glow on Auth page
-- Track mouse position with `onMouseMove` on the outer container
-- Render a large (`~400px`) radial gradient div positioned at the cursor coordinates using `motion.div` with smooth spring-based animation
-- Use accent color (`hsl(45 100% 58%)`) at low opacity (~0.07) so it's soft and ambient
-- `pointer-events-none` so it doesn't interfere with form interactions
+### Current state
+- **Index.tsx**: Card container is `w-[500px]`, card height area `260px`, prompt text truncated to 3 lines, prompts use short ellipsized text
+- **Auth.tsx**: Card container is `w-[460px]`, single cycling card, prompt text truncated to 3 lines
 
-### 2. Feature the recovered_prompt animation on Auth page
-- Import the same `prompts` array and card animation from Index into Auth
-- Add a cycling prompt card behind/beside the form — positioned absolutely, slightly offset and rotated
-- Show a single active card that fades/swaps every ~4 seconds with a typewriter or fade transition
-- Smaller scale than the homepage version — acts as a visual accent rather than a full feature block
-- Include the `recovered_prompt` label and model/tag badges to reinforce what the product does
+### Changes
 
-### Technical approach
-- All changes in `src/pages/Auth.tsx` only
-- Add `useState` for mouse position, `useEffect` for prompt cycling
-- The glow div uses `style={{ left: mouseX, top: mouseY, transform: 'translate(-50%, -50%)' }}` with `motion.div` for smooth lag
-- The prompt card sits in the background layer behind the form with reduced opacity
+#### 1. Expand prompt text content
+Replace the short, ellipsized prompt strings with full-length sample prompts (3-5 sentences each) so the cards have real readable content.
+
+#### 2. Index.tsx — scale up the card stack
+- Increase card container width from `w-[500px]` to `w-[720px]`
+- Increase card stack height from `260px` to `420px`
+- Remove `line-clamp-3` so full prompt text is visible
+- Increase inner padding from `p-7` to `p-9`, and inner content padding from `px-4 py-3` to `px-6 py-5`
+- Bump text size from `text-sm` to `text-base`
+- Increase tag/badge size slightly
+- Adjust card stack offsets (`y`, `x`, `scale`) proportionally for the larger size
+
+#### 3. Auth.tsx — scale up the cycling card
+- Increase container width from `w-[460px]` to `w-[700px]`
+- Remove `line-clamp-3` to show full prompt text
+- Match the same padding and text size increases as Index
+- Adjust positioning (`translate-x`, `translate-y`) so it remains balanced behind the form
+
+#### Files modified
+- `src/pages/Index.tsx`
+- `src/pages/Auth.tsx`
 
