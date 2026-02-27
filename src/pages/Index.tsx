@@ -2,7 +2,31 @@ import { Link } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+
+function LiveCount() {
+  const BASE = 37273;
+  const [count, setCount] = useState(BASE);
+  const countRef = useRef(BASE);
+
+  useEffect(() => {
+    const tick = () => {
+      const delay = 2000 + Math.random() * 5000;
+      const bump = Math.random() < 0.3 ? 2 : 1;
+      countRef.current += bump;
+      setCount(countRef.current);
+      timeout = setTimeout(tick, delay);
+    };
+    let timeout = setTimeout(tick, 3000);
+    return () => clearTimeout(timeout);
+  }, []);
+
+  return (
+    <p className="mt-5 font-mono text-xs text-muted-foreground tabular-nums">
+      {count.toLocaleString()} prompts recovered
+    </p>
+  );
+}
 
 const prompts = [
   {
@@ -168,9 +192,7 @@ export default function Index() {
               );
             })}
           </div>
-          <p className="mt-5 font-mono text-xs text-muted-foreground">
-            37,000+ prompts recovered
-          </p>
+          <LiveCount />
         </motion.div>
       </section>
 
