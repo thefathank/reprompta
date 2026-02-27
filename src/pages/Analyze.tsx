@@ -33,6 +33,33 @@ const COMPARE_MODELS = [
   { model: "google/gemini-3-flash-preview", label: "Gemini 3 Flash" },
 ];
 
+function UsageBar({ label, used, total, suffix }: { label: string; used: number; total: number; suffix: string }) {
+  const remaining = Math.max(0, total - used);
+  const pct = total > 0 ? Math.min(100, (used / total) * 100) : 0;
+  const isNearLimit = pct >= 80;
+  const isAtLimit = pct >= 100;
+
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between text-xs">
+        <span className="text-muted-foreground">{label}</span>
+        <span className={`font-medium ${isAtLimit ? "text-destructive" : isNearLimit ? "text-yellow-500" : "text-foreground"}`}>
+          {remaining} of {total} remaining
+          <span className="ml-1 font-normal text-muted-foreground">{suffix}</span>
+        </span>
+      </div>
+      <div className="h-1.5 w-full overflow-hidden rounded-full bg-secondary">
+        <div
+          className={`h-full rounded-full transition-all duration-500 ${
+            isAtLimit ? "bg-destructive" : isNearLimit ? "bg-yellow-500" : "bg-accent"
+          }`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
 export default function Analyze() {
   const { user, subscription, checkSubscription } = useAuth();
   const navigate = useNavigate();
@@ -233,11 +260,33 @@ export default function Analyze() {
           Upload an AI-generated image or video to recover its prompt.
         </p>
 
-        {/* Quota */}
+        {/* Usage progress bars */}
         {usage && (
-          <p className="mt-3 text-xs text-muted-foreground">
-            {quotaText}
-          </p>
+          <div className="mt-4 max-w-sm space-y-3">
+            {/* Images */}
+            {tier.images !== Infinity ? (
+              <UsageBar
+                label="Images"
+                used={imagesUsed}
+                total={tier.images}
+                suffix={tier.lifetime ? "total" : "this month"}
+              />
+            ) : (
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>Images</span>
+                <span className="font-medium text-foreground">Unlimited</span>
+              </div>
+            )}
+            {/* Videos — only show for paid tiers */}
+            {tier.videos > 0 && (
+              <UsageBar
+                label="Videos"
+                used={videosUsed}
+                total={tier.videos}
+                suffix="this month"
+              />
+            )}
+          </div>
         )}
 
         {/* Compare toggle — Pro only */}
