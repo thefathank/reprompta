@@ -68,6 +68,24 @@
   .text-accent-glow {
     color: hsl(var(--accent));
     text-shadow: 0 0 40px hsl(var(--accent) / 0.3);
+    background: linear-gradient(
+      120deg,
+      hsl(var(--accent)) 0%,
+      hsl(var(--accent)) 35%,
+      hsl(0 0% 100% / 0.9) 50%,
+      hsl(var(--accent)) 65%,
+      hsl(var(--accent)) 100%
+    );
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: shimmer 3s ease-in-out infinite;
+  }
+
+  @keyframes shimmer {
+    0%, 100% { background-position: 200% center; }
+    50% { background-position: -200% center; }
   }
 
   .surface-glass {
