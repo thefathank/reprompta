@@ -65,6 +65,11 @@ const fade = {
 export default function Index() {
   const { user } = useAuth();
   const [promptIdx, setPromptIdx] = useState(0);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    setMousePos({ x: e.clientX, y: e.clientY });
+  };
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -74,7 +79,17 @@ export default function Index() {
   }, []);
 
   return (
-    <div className="relative min-h-screen overflow-hidden">
+    <div className="relative min-h-screen overflow-hidden" onMouseMove={handleMouseMove}>
+      {/* Mouse-following yellow glow */}
+      <motion.div
+        className="pointer-events-none fixed h-[500px] w-[500px] rounded-full"
+        style={{
+          background: "radial-gradient(circle, hsl(45 100% 58% / 0.07), transparent 70%)",
+        }}
+        animate={{ x: mousePos.x - 250, y: mousePos.y - 250 }}
+        transition={{ type: "spring", stiffness: 80, damping: 30, mass: 0.8 }}
+      />
+
       {/* Ambient light — single directional key */}
       <div
         className="pointer-events-none fixed inset-0"
