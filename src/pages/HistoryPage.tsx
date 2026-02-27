@@ -2,11 +2,18 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { Search, Trash2, Film, Lock } from "lucide-react";
+import { Search, Trash2, Film, Lock, Sparkles } from "lucide-react";
 import { AnalysisResult } from "@/components/AnalysisResult";
 import { motion } from "framer-motion";
 import { getTierByProductId } from "@/lib/subscription";
 import { useNavigate } from "react-router-dom";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 interface AnalysisRow {
   id: string;
@@ -59,22 +66,14 @@ export default function HistoryPage() {
     }
   };
 
-  // Gate: free tier can't access history
-  if (!tier.history && !subscription.isLoading) {
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4 px-6">
-        <Lock className="h-8 w-8 text-muted-foreground" />
-        <h2 className="text-xl font-semibold">History is a paid feature</h2>
-        <p className="text-sm text-muted-foreground">Upgrade to Basic or Pro to access your analysis history.</p>
-        <button
-          onClick={() => navigate("/pricing")}
-          className="mt-2 flex h-10 items-center rounded-md bg-foreground px-6 text-sm font-semibold text-background transition-opacity hover:opacity-90"
-        >
-          View Plans
-        </button>
-      </div>
-    );
-  }
+  const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
+
+  // Gate: free tier — show upgrade dialog immediately
+  useEffect(() => {
+    if (!tier.history && !subscription.isLoading) {
+      setShowUpgradeDialog(true);
+    }
+  }, [tier.history, subscription.isLoading]);
 
   const filtered = analyses.filter((a) =>
     !search || (a.recovered_prompt?.toLowerCase().includes(search.toLowerCase()) ||
@@ -91,6 +90,38 @@ export default function HistoryPage() {
       >
         <h1 className="text-3xl font-bold tracking-tight">History</h1>
         <p className="mt-2 text-sm text-muted-foreground">Your past analyses.</p>
+
+        {/* Upgrade dialog for free tier */}
+        <Dialog open={showUpgradeDialog} onOpenChange={(open) => {
+          setShowUpgradeDialog(open);
+          if (!open && !tier.history) navigate("/analyze");
+        }}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-accent" />
+                Upgrade to access History
+              </DialogTitle>
+              <DialogDescription>
+                Analysis history lets you revisit and search all your past prompt recoveries. Upgrade to Basic or Pro to unlock this feature.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="mt-4 flex justify-end gap-3">
+              <button
+                onClick={() => { setShowUpgradeDialog(false); navigate("/analyze"); }}
+                className="flex h-10 items-center rounded-md border border-border px-5 text-sm font-medium transition-colors hover:bg-secondary"
+              >
+                Go back
+              </button>
+              <button
+                onClick={() => navigate("/pricing")}
+                className="flex h-10 items-center rounded-md bg-accent px-5 text-sm font-semibold text-accent-foreground transition-opacity hover:opacity-90"
+              >
+                View Plans
+              </button>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         <div className="relative mt-8">
           <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
