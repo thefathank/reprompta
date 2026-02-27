@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 interface MediaUploaderProps {
   onFileSelect: (file: File) => void;
   disabled?: boolean;
+  acceptVideo?: boolean;
 }
 
 const ACCEPTED = {
@@ -33,14 +34,20 @@ function checkVideoDuration(file: File): Promise<number> {
   });
 }
 
-export function MediaUploader({ onFileSelect, disabled }: MediaUploaderProps) {
+export function MediaUploader({ onFileSelect, disabled, acceptVideo = true }: MediaUploaderProps) {
   const [dragOver, setDragOver] = useState(false);
   const [checking, setChecking] = useState(false);
   const [preview, setPreview] = useState<{ url: string; type: "image" | "video"; name: string } | null>(null);
 
   const handleFile = useCallback(
     async (file: File) => {
-      if (!ALL_TYPES.includes(file.type)) return;
+    const allowed = acceptVideo ? ALL_TYPES : ACCEPTED.image;
+    if (!allowed.includes(file.type)) {
+      if (!acceptVideo && ACCEPTED.video.includes(file.type)) {
+        toast({ title: "Video not available", description: "Upgrade your plan to analyze videos.", variant: "destructive" });
+      }
+      return;
+    }
       if (file.size > MAX_SIZE_BYTES) {
         toast({
           title: "File too large",
@@ -72,7 +79,7 @@ export function MediaUploader({ onFileSelect, disabled }: MediaUploaderProps) {
       setPreview({ url: URL.createObjectURL(file), type, name: file.name });
       onFileSelect(file);
     },
-    [onFileSelect]
+    [onFileSelect, acceptVideo]
   );
 
   const handleDrop = useCallback(
@@ -142,7 +149,7 @@ export function MediaUploader({ onFileSelect, disabled }: MediaUploaderProps) {
           </div>
         </>
       )}
-      <input type="file" accept={ALL_TYPES.join(",")} className="hidden" onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])} disabled={disabled || checking} />
+      <input type="file" accept={(acceptVideo ? ALL_TYPES : ACCEPTED.image).join(",")} className="hidden" onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])} disabled={disabled || checking} />
     </label>
   );
 }
