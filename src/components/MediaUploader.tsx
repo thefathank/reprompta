@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
 import { Upload, X, Image, Film } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
 interface MediaUploaderProps {
@@ -12,6 +13,8 @@ const ACCEPTED = {
   video: ["video/mp4", "video/webm"],
 };
 const ALL_TYPES = [...ACCEPTED.image, ...ACCEPTED.video];
+const MAX_SIZE_MB = 20;
+const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
 
 export function MediaUploader({ onFileSelect, disabled }: MediaUploaderProps) {
   const [dragOver, setDragOver] = useState(false);
@@ -20,6 +23,14 @@ export function MediaUploader({ onFileSelect, disabled }: MediaUploaderProps) {
   const handleFile = useCallback(
     (file: File) => {
       if (!ALL_TYPES.includes(file.type)) return;
+      if (file.size > MAX_SIZE_BYTES) {
+        toast({
+          title: "File too large",
+          description: `Maximum file size is ${MAX_SIZE_MB}MB. Your file is ${(file.size / 1024 / 1024).toFixed(1)}MB.`,
+          variant: "destructive",
+        });
+        return;
+      }
       const type = file.type.startsWith("image") ? "image" : "video";
       setPreview({ url: URL.createObjectURL(file), type, name: file.name });
       onFileSelect(file);
