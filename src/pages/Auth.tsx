@@ -77,9 +77,9 @@ export default function Auth() {
     >
       {/* Mouse-following yellow glow */}
       <motion.div
-        className="pointer-events-none fixed h-[500px] w-[500px] rounded-full"
+        className="pointer-events-none fixed h-[600px] w-[600px] rounded-full"
         style={{
-          background: "radial-gradient(circle, hsl(45 100% 58% / 0.07), transparent 70%)",
+          background: "radial-gradient(circle, hsl(45 100% 58% / 0.25), hsl(45 100% 58% / 0.08) 40%, transparent 70%)",
         }}
         animate={{ x: mousePos.x - 250, y: mousePos.y - 250 }}
         transition={{ type: "spring", stiffness: 80, damping: 30, mass: 0.8 }}
