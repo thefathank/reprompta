@@ -160,7 +160,14 @@ export default function Index() {
                     zIndex: prompts.length - offset,
                     opacity: visible ? (isActive ? 1 : isBehind1 ? 0.5 : 0.25) : 0,
                   }}
-                  transition={{ type: "spring", stiffness: 200, damping: 22 }}
+                  transition={{
+                    y: { type: "spring", stiffness: 200, damping: 22 },
+                    x: { type: "spring", stiffness: 200, damping: 22 },
+                    scale: { type: "spring", stiffness: 200, damping: 22 },
+                    rotate: { type: "spring", stiffness: 200, damping: 22 },
+                    opacity: { duration: 0.15, ease: "easeOut" },
+                    zIndex: { duration: 0 },
+                  }}
                   className="absolute inset-x-0 top-0"
                   style={{ transformOrigin: "bottom left" }}
                 >
