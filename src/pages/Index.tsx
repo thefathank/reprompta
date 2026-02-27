@@ -135,14 +135,16 @@ export default function Index() {
                 <motion.div
                   key={i}
                   animate={{
-                    y: offset * 12,
+                    y: offset * 14,
+                    x: offset * 4,
                     scale: 1 - offset * 0.04,
+                    rotate: isActive ? 0 : isBehind1 ? 1.5 : 2.5,
                     zIndex: prompts.length - offset,
                     opacity: visible ? (isActive ? 1 : isBehind1 ? 0.5 : 0.25) : 0,
                   }}
-                  transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] as [number, number, number, number] }}
+                  transition={{ type: "spring", stiffness: 200, damping: 22 }}
                   className="absolute inset-x-0 top-0"
-                  style={{ transformOrigin: "top center" }}
+                  style={{ transformOrigin: "bottom left" }}
                 >
                   <div className="surface-elevated rounded-lg p-6">
                     <div className="rim-light rounded-md px-4 py-3">
