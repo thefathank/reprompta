@@ -2,14 +2,29 @@ import { useEffect, useState, useRef } from "react";
 import { useAuth } from "@/lib/auth";
 import { toast } from "@/hooks/use-toast";
 import { getTierByProductId } from "@/lib/subscription";
+import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { CheckCircle2, Loader2 } from "lucide-react";
+import { CheckCircle2, Loader2, Settings } from "lucide-react";
 
 export default function PaymentSuccess() {
   const { user, subscription, checkSubscription } = useAuth();
   const navigate = useNavigate();
   const [refreshing, setRefreshing] = useState(true);
+  const [portalLoading, setPortalLoading] = useState(false);
+
+  const openPortal = async () => {
+    setPortalLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("customer-portal");
+      if (error) throw error;
+      if (data?.url) window.open(data.url, "_blank");
+    } catch {
+      toast({ title: "Error", description: "Could not open subscription management.", variant: "destructive" });
+    } finally {
+      setPortalLoading(false);
+    }
+  };
 
   useEffect(() => {
     let attempts = 0;
@@ -66,12 +81,22 @@ export default function PaymentSuccess() {
             <p className="mt-2 text-sm text-muted-foreground">
               Your subscription is active. Start analyzing with your new limits.
             </p>
-            <button
-              onClick={() => navigate("/analyze")}
-              className="mt-8 flex h-11 items-center rounded-md bg-accent px-8 text-sm font-semibold text-accent-foreground transition-opacity hover:opacity-90"
-            >
-              Start Analyzing
-            </button>
+            <div className="mt-8 flex gap-3">
+              <button
+                onClick={() => navigate("/analyze")}
+                className="flex h-11 items-center rounded-md bg-accent px-8 text-sm font-semibold text-accent-foreground transition-opacity hover:opacity-90"
+              >
+                Start Analyzing
+              </button>
+              <button
+                onClick={openPortal}
+                disabled={portalLoading}
+                className="flex h-11 items-center gap-2 rounded-md border border-border px-6 text-sm font-medium transition-colors hover:bg-secondary disabled:opacity-50"
+              >
+                {portalLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Settings className="h-4 w-4" />}
+                Manage Subscription
+              </button>
+            </div>
           </>
         ) : (
           <>
