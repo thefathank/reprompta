@@ -1,34 +1,24 @@
 
 
-## Fix: Prompt text bleeding during card transitions
+## Plan: Make the card stack visually read as a pile of cards
 
-### Root cause
-All prompt cards are rendered simultaneously and repositioned via spring animations. During the transition, the outgoing card's text is still visible while it animates to its new position, causing a brief overlap where both texts are readable.
+### Problem
+Currently only the active card is fully visible and behind-cards fade out too aggressively (0.5 → 0.25 → 0), making it look like a single card cycling rather than a stack. The offset spacing (18px y, 6px x) is too subtle to convey depth.
 
-The spring transition (`stiffness: 200, damping: 22`) is relatively bouncy/slow, so the z-index and opacity changes don't resolve instantly — the old "active" card fades out while the new one fades in, creating a visible text bleed.
+### Changes — `src/pages/Index.tsx`
 
-### Fix
-Add `overflow-hidden` to each card's inner content area and use `layout` or `AnimatePresence` — but the simplest effective fix is:
-
-1. **Use `key={promptIdx + '-' + i}` or re-key based on offset** — not ideal since all cards persist.
-2. **Better approach**: Make the z-index transition instant (not spring-animated) and ensure opacity snaps faster for the departing card.
-
-Specifically in `src/pages/Index.tsx`:
-- Split the `animate` into two separate transition configs using `motion.div`'s `transition` prop with per-property control
-- Make `opacity` use a tween with very short duration (~0.15s) instead of the spring, so the old active card fades out quickly before the new one fully appears
-- Keep `y`, `x`, `scale`, `rotate` on the spring for smooth physical movement
-
-```tsx
-transition={{
-  y: { type: "spring", stiffness: 200, damping: 22 },
-  x: { type: "spring", stiffness: 200, damping: 22 },
-  scale: { type: "spring", stiffness: 200, damping: 22 },
-  rotate: { type: "spring", stiffness: 200, damping: 22 },
-  opacity: { duration: 0.15, ease: "easeOut" },
-  zIndex: { duration: 0 },
-}}
-```
+1. **Increase visible card count from 3 to 4** — show `offset <= 3` instead of `offset <= 2`
+2. **Increase stacking offsets** — more vertical and horizontal spread so behind-cards are clearly peeking out:
+   - `y: offset * 24` (was `18`)
+   - `x: offset * 10` (was `6`)
+3. **Increase rotation spread** — behind cards fan out more noticeably: `offset === 1 → 2°`, `offset === 2 → 3.5°`, `offset === 3 → 4.5°`
+4. **Raise behind-card opacity** — so text/structure is partially visible on stacked cards:
+   - offset 0: `1`
+   - offset 1: `0.6` (was `0.5`)
+   - offset 2: `0.35` (was `0.25`)
+   - offset 3: `0.18` (new)
+5. **Reduce scale step** — `1 - offset * 0.03` (was `0.04`) so behind cards stay larger and more readable as cards
 
 ### Files modified
-- `src/pages/Index.tsx` — update the card `motion.div` transition prop
+- `src/pages/Index.tsx`
 
