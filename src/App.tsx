@@ -10,6 +10,7 @@ import Auth from "./pages/Auth";
 import Analyze from "./pages/Analyze";
 import HistoryPage from "./pages/HistoryPage";
 import Pricing from "./pages/Pricing";
+import PaymentSuccess from "./pages/PaymentSuccess";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -27,6 +28,7 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/pricing" element={<Pricing />} />
             <Route path="/analyze" element={<RequireAuth><Analyze /></RequireAuth>} />
+            <Route path="/payment-success" element={<RequireAuth><PaymentSuccess /></RequireAuth>} />
             <Route path="/history" element={<RequireAuth><HistoryPage /></RequireAuth>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
