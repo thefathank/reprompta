@@ -166,6 +166,9 @@ export default function Index() {
               </AnimatePresence>
             </div>
           </div>
+          <p className="mt-5 font-mono text-xs text-muted-foreground">
+            37,000+ prompts recovered
+          </p>
         </motion.div>
       </section>
 
