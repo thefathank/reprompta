@@ -116,55 +116,55 @@ export default function Index() {
           </motion.div>
         </div>
 
-        {/* Right side — floating glass slab */}
+        {/* Right side — stacked prompt cards */}
         <motion.div
-          initial={{ opacity: 0, x: 40, rotateY: -8 }}
-          animate={{ opacity: 1, x: 0, rotateY: 0 }}
-          transition={{ duration: 1, delay: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
+          initial={{ opacity: 0, x: 40 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 1, delay: 0.4, ease: [0.25, 0.1, 0.25, 1] as [number, number, number, number] }}
           className="absolute right-[-4%] top-[18%] hidden w-[420px] lg:block"
-          style={{ perspective: "1200px" }}
         >
-          <div className="surface-elevated rounded-lg p-8">
-            <div className="mb-6 space-y-2">
-              <div className="h-2 w-3/4 rounded-full bg-muted" />
-              <div className="h-2 w-1/2 rounded-full bg-muted" />
-            </div>
-            <div className="space-y-3">
-              <div className="rim-light relative overflow-hidden rounded-md px-4 py-3" style={{ minHeight: 72 }}>
-                <p className="font-mono text-xs text-muted-foreground">recovered_prompt</p>
-                <AnimatePresence mode="wait">
-                  <motion.p
-                    key={promptIdx}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -8 }}
-                    transition={{ duration: 0.4 }}
-                    className="mt-1 text-sm text-foreground"
-                  >
-                    {prompts[promptIdx].text}
-                  </motion.p>
-                </AnimatePresence>
-              </div>
-              <AnimatePresence mode="wait">
+          <div className="relative" style={{ height: 220 }}>
+            {prompts.map((prompt, i) => {
+              const offset = (i - promptIdx + prompts.length) % prompts.length;
+              const isActive = offset === 0;
+              const isBehind1 = offset === 1;
+              const isBehind2 = offset === 2;
+              const visible = offset <= 2;
+
+              return (
                 <motion.div
-                  key={promptIdx}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.3 }}
-                  className="flex gap-2"
+                  key={i}
+                  animate={{
+                    y: offset * 12,
+                    scale: 1 - offset * 0.04,
+                    zIndex: prompts.length - offset,
+                    opacity: visible ? (isActive ? 1 : isBehind1 ? 0.5 : 0.25) : 0,
+                  }}
+                  transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] as [number, number, number, number] }}
+                  className="absolute inset-x-0 top-0"
+                  style={{ transformOrigin: "top center" }}
                 >
-                  <span className="rounded bg-secondary px-2.5 py-1 text-xs text-secondary-foreground">
-                    {prompts[promptIdx].model}
-                  </span>
-                  {prompts[promptIdx].tags.map((tag) => (
-                    <span key={tag} className="rounded bg-secondary px-2.5 py-1 text-xs text-secondary-foreground">
-                      {tag}
-                    </span>
-                  ))}
+                  <div className="surface-elevated rounded-lg p-6">
+                    <div className="rim-light rounded-md px-4 py-3">
+                      <p className="font-mono text-xs text-muted-foreground">recovered_prompt</p>
+                      <p className="mt-1 text-sm leading-relaxed text-foreground line-clamp-2">
+                        {prompt.text}
+                      </p>
+                    </div>
+                    <div className="mt-3 flex gap-2">
+                      <span className="rounded bg-secondary px-2.5 py-1 text-xs text-secondary-foreground">
+                        {prompt.model}
+                      </span>
+                      {prompt.tags.map((tag) => (
+                        <span key={tag} className="rounded bg-secondary px-2.5 py-1 text-xs text-secondary-foreground">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
                 </motion.div>
-              </AnimatePresence>
-            </div>
+              );
+            })}
           </div>
           <p className="mt-5 font-mono text-xs text-muted-foreground">
             37,000+ prompts recovered
