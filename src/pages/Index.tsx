@@ -171,7 +171,7 @@ export default function Index() {
                   className="absolute inset-x-0 top-0"
                   style={{ transformOrigin: "bottom left" }}
                 >
-                  <div className="surface-glass rounded-xl border border-border/40 p-9">
+                  <div className={`surface-glass rounded-xl border p-9 ${isActive ? 'card-glow border-accent/20' : 'border-border/40'}`}>
                     <div className="rim-light rounded-md px-6 py-5">
                       <p className="font-mono text-xs text-muted-foreground tracking-wider">recovered_prompt</p>
                       <p className="mt-3 text-base leading-relaxed text-foreground">
