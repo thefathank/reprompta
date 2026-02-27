@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { Upload, X, Image, Film } from "lucide-react";
+import { Upload, X, Image, Film, Loader2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
@@ -35,6 +35,7 @@ function checkVideoDuration(file: File): Promise<number> {
 
 export function MediaUploader({ onFileSelect, disabled }: MediaUploaderProps) {
   const [dragOver, setDragOver] = useState(false);
+  const [checking, setChecking] = useState(false);
   const [preview, setPreview] = useState<{ url: string; type: "image" | "video"; name: string } | null>(null);
 
   const handleFile = useCallback(
@@ -50,6 +51,7 @@ export function MediaUploader({ onFileSelect, disabled }: MediaUploaderProps) {
       }
       const type = file.type.startsWith("image") ? "image" : "video";
       if (type === "video") {
+        setChecking(true);
         try {
           const duration = await checkVideoDuration(file);
           if (duration > MAX_VIDEO_DURATION_S) {
@@ -58,10 +60,13 @@ export function MediaUploader({ onFileSelect, disabled }: MediaUploaderProps) {
               description: `Maximum duration is ${MAX_VIDEO_DURATION_S}s. Your video is ${Math.round(duration)}s.`,
               variant: "destructive",
             });
+            setChecking(false);
             return;
           }
         } catch {
           // If we can't read metadata, allow it through
+        } finally {
+          setChecking(false);
         }
       }
       setPreview({ url: URL.createObjectURL(file), type, name: file.name });
@@ -120,15 +125,24 @@ export function MediaUploader({ onFileSelect, disabled }: MediaUploaderProps) {
       className={cn(
         "flex cursor-pointer flex-col items-center justify-center gap-3 rounded-md border border-dashed p-16 text-center transition-colors",
         dragOver ? "border-foreground/30 bg-secondary/50" : "border-border hover:border-muted-foreground/40",
-        disabled && "pointer-events-none opacity-50"
+        (disabled || checking) && "pointer-events-none opacity-50"
       )}
     >
-      <Upload className="h-5 w-5 text-muted-foreground" />
-      <div>
-        <p className="text-sm font-medium text-foreground">Drop media here or click to upload</p>
-        <p className="mt-1 text-xs text-muted-foreground">JPG, PNG, WEBP, MP4, WEBM · Max 20MB · Videos ≤ 30s</p>
-      </div>
-      <input type="file" accept={ALL_TYPES.join(",")} className="hidden" onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])} disabled={disabled} />
+      {checking ? (
+        <>
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          <p className="text-sm font-medium text-foreground">Checking video…</p>
+        </>
+      ) : (
+        <>
+          <Upload className="h-5 w-5 text-muted-foreground" />
+          <div>
+            <p className="text-sm font-medium text-foreground">Drop media here or click to upload</p>
+            <p className="mt-1 text-xs text-muted-foreground">JPG, PNG, WEBP, MP4, WEBM · Max 20MB · Videos ≤ 30s</p>
+          </div>
+        </>
+      )}
+      <input type="file" accept={ALL_TYPES.join(",")} className="hidden" onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])} disabled={disabled || checking} />
     </label>
   );
 }
