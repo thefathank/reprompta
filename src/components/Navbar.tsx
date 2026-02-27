@@ -1,36 +1,33 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
-import { Button } from "@/components/ui/button";
-import { Sparkles, History, LogOut } from "lucide-react";
 
 export function Navbar() {
   const { user, signOut } = useAuth();
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-border glass">
-      <div className="container flex h-16 items-center justify-between">
-        <Link to="/" className="flex items-center gap-2 text-lg font-bold">
-          <Sparkles className="h-5 w-5 text-primary" />
-          <span className="gradient-text">PromptLens</span>
+    <nav className="fixed top-0 left-0 right-0 z-50 surface-glass">
+      <div className="flex h-14 items-center justify-between px-6 lg:px-16">
+        <Link to="/" className="text-sm font-semibold tracking-tight text-foreground">
+          PromptLens
         </Link>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-6 text-xs font-medium tracking-wide text-muted-foreground">
           {user ? (
             <>
-              <Button variant="ghost" size="sm" asChild>
-                <Link to="/analyze"><Sparkles className="mr-1.5 h-4 w-4" />Analyze</Link>
-              </Button>
-              <Button variant="ghost" size="sm" asChild>
-                <Link to="/history"><History className="mr-1.5 h-4 w-4" />History</Link>
-              </Button>
-              <Button variant="ghost" size="sm" onClick={signOut}>
-                <LogOut className="mr-1.5 h-4 w-4" />Sign Out
-              </Button>
+              <Link to="/analyze" className="transition-colors hover:text-foreground">
+                Analyze
+              </Link>
+              <Link to="/history" className="transition-colors hover:text-foreground">
+                History
+              </Link>
+              <button onClick={signOut} className="transition-colors hover:text-foreground">
+                Sign out
+              </button>
             </>
           ) : (
-            <Button size="sm" asChild>
-              <Link to="/auth">Sign In</Link>
-            </Button>
+            <Link to="/auth" className="transition-colors hover:text-foreground">
+              Sign in
+            </Link>
           )}
         </div>
       </div>

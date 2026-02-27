@@ -1,12 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
-import { Sparkles } from "lucide-react";
+import { motion } from "framer-motion";
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
@@ -34,44 +30,72 @@ export default function Auth() {
     if (isLogin) {
       navigate("/analyze");
     } else {
-      toast({ title: "Check your email", description: "We sent you a confirmation link to verify your account." });
+      toast({ title: "Check your email", description: "We sent you a confirmation link." });
     }
   };
 
   return (
-    <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4">
-      <Card className="w-full max-w-md border-border bg-card">
-        <CardHeader className="text-center">
-          <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-            <Sparkles className="h-6 w-6 text-primary" />
+    <div className="flex min-h-screen items-center px-6 lg:px-16">
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="w-full max-w-sm"
+      >
+        <h1 className="text-3xl font-bold tracking-tight">
+          {isLogin ? "Welcome back" : "Create account"}
+        </h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          {isLogin ? "Sign in to continue." : "Get started with PromptLens."}
+        </p>
+
+        <form onSubmit={handleSubmit} className="mt-10 space-y-5">
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+              Email
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-foreground"
+              placeholder="you@example.com"
+            />
           </div>
-          <CardTitle className="text-2xl">{isLogin ? "Welcome Back" : "Create Account"}</CardTitle>
-          <CardDescription>
-            {isLogin ? "Sign in to continue analyzing" : "Sign up to start reverse engineering prompts"}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" required />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" required minLength={6} />
-            </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Loading..." : isLogin ? "Sign In" : "Sign Up"}
-            </Button>
-          </form>
-          <p className="mt-4 text-center text-sm text-muted-foreground">
-            {isLogin ? "Don't have an account? " : "Already have an account? "}
-            <button onClick={() => setIsLogin(!isLogin)} className="text-primary hover:underline">
-              {isLogin ? "Sign Up" : "Sign In"}
-            </button>
-          </p>
-        </CardContent>
-      </Card>
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+              Password
+            </label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              minLength={6}
+              className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-foreground"
+              placeholder="••••••••"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={loading}
+            className="h-10 w-full rounded-md bg-foreground text-sm font-semibold text-background transition-opacity hover:opacity-90 disabled:opacity-50"
+          >
+            {loading ? "Loading..." : isLogin ? "Sign in" : "Sign up"}
+          </button>
+        </form>
+
+        <p className="mt-6 text-xs text-muted-foreground">
+          {isLogin ? "No account? " : "Have an account? "}
+          <button
+            onClick={() => setIsLogin(!isLogin)}
+            className="text-foreground hover:underline"
+          >
+            {isLogin ? "Sign up" : "Sign in"}
+          </button>
+        </p>
+      </motion.div>
     </div>
   );
 }
