@@ -3,10 +3,9 @@ import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { MediaUploader } from "@/components/MediaUploader";
 import { AnalysisResult } from "@/components/AnalysisResult";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { toast } from "@/hooks/use-toast";
-import { Sparkles, Loader2 } from "lucide-react";
+import { motion } from "framer-motion";
+import { Loader2 } from "lucide-react";
 
 interface AnalysisData {
   recovered_prompt: string;
@@ -20,34 +19,27 @@ export default function Analyze() {
   const { user } = useAuth();
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
-  const [progress, setProgress] = useState(0);
   const [result, setResult] = useState<AnalysisData | null>(null);
 
   const analyze = async () => {
     if (!file || !user) return;
     setLoading(true);
-    setProgress(10);
     setResult(null);
 
     try {
-      // Upload to storage
       const ext = file.name.split(".").pop();
       const filePath = `${user.id}/${Date.now()}.${ext}`;
-      setProgress(20);
 
       const { error: uploadError } = await supabase.storage
         .from("media-uploads")
         .upload(filePath, file);
 
       if (uploadError) throw uploadError;
-      setProgress(40);
 
       const { data: { publicUrl } } = supabase.storage
         .from("media-uploads")
         .getPublicUrl(filePath);
 
-      // Call edge function
-      setProgress(60);
       const mediaType = file.type.startsWith("image") ? "image" : "video";
 
       const { data: fnData, error: fnError } = await supabase.functions.invoke("analyze-media", {
@@ -55,11 +47,9 @@ export default function Analyze() {
       });
 
       if (fnError) throw fnError;
-      setProgress(90);
 
       const analysis = fnData as AnalysisData;
 
-      // Save to database
       await supabase.from("analyses").insert([{
         user_id: user.id,
         media_url: publicUrl,
@@ -74,7 +64,6 @@ export default function Analyze() {
       }]);
 
       setResult(analysis);
-      setProgress(100);
     } catch (err: any) {
       toast({ title: "Analysis failed", description: err.message, variant: "destructive" });
     } finally {
@@ -83,26 +72,47 @@ export default function Analyze() {
   };
 
   return (
-    <div className="container max-w-3xl py-10">
-      <div className="mb-8 text-center">
-        <h1 className="text-3xl font-bold">Analyze Media</h1>
-        <p className="mt-2 text-muted-foreground">Upload an AI-generated image or video to reverse engineer its prompt</p>
-      </div>
+    <div className="min-h-screen px-6 pt-24 pb-16 lg:px-16">
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="max-w-2xl"
+      >
+        <h1 className="text-3xl font-bold tracking-tight">Analyze</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Upload an AI-generated image or video to recover its prompt.
+        </p>
 
-      <div className="space-y-6">
-        <MediaUploader onFileSelect={setFile} disabled={loading} />
+        <div className="mt-10 space-y-6">
+          <MediaUploader onFileSelect={setFile} disabled={loading} />
 
-        {file && !result && (
-          <Button onClick={analyze} disabled={loading} className="w-full gap-2" size="lg">
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-            {loading ? "Analyzing..." : "Analyze"}
-          </Button>
-        )}
+          {file && !result && (
+            <button
+              onClick={analyze}
+              disabled={loading}
+              className="flex h-11 w-full items-center justify-center gap-2 rounded-md bg-foreground text-sm font-semibold text-background transition-opacity hover:opacity-90 disabled:opacity-50"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Analyzing...
+                </>
+              ) : (
+                "Analyze"
+              )}
+            </button>
+          )}
 
-        {loading && <Progress value={progress} className="h-2" />}
+          {loading && (
+            <div className="h-0.5 w-full overflow-hidden rounded-full bg-secondary">
+              <div className="h-full animate-pulse bg-muted-foreground/30" style={{ width: "60%" }} />
+            </div>
+          )}
 
-        {result && <AnalysisResult data={result} />}
-      </div>
+          {result && <AnalysisResult data={result} />}
+        </div>
+      </motion.div>
     </div>
   );
 }

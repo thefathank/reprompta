@@ -1,13 +1,10 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
-import { Search, Trash2, Image, Film, Copy, Check } from "lucide-react";
+import { Search, Trash2, Film } from "lucide-react";
 import { AnalysisResult } from "@/components/AnalysisResult";
+import { motion } from "framer-motion";
 
 interface AnalysisRow {
   id: string;
@@ -64,68 +61,87 @@ export default function HistoryPage() {
   );
 
   return (
-    <div className="container max-w-3xl py-10">
-      <h1 className="mb-2 text-3xl font-bold">History</h1>
-      <p className="mb-6 text-muted-foreground">Your past analyses</p>
+    <div className="min-h-screen px-6 pt-24 pb-16 lg:px-16">
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="max-w-2xl"
+      >
+        <h1 className="text-3xl font-bold tracking-tight">History</h1>
+        <p className="mt-2 text-sm text-muted-foreground">Your past analyses.</p>
 
-      <div className="relative mb-6">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input placeholder="Search by prompt or filename..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
-      </div>
-
-      {loading ? (
-        <div className="flex justify-center py-20">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        <div className="relative mt-8">
+          <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+          <input
+            placeholder="Search by prompt or filename..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="h-10 w-full rounded-md border border-input bg-background pl-9 pr-3 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-foreground"
+          />
         </div>
-      ) : filtered.length === 0 ? (
-        <p className="py-20 text-center text-muted-foreground">
-          {search ? "No results found." : "No analyses yet. Go analyze some media!"}
-        </p>
-      ) : (
-        <div className="space-y-3">
-          {filtered.map((a) => (
-            <div key={a.id}>
-              <Card
-                className="cursor-pointer transition-colors hover:border-primary/30"
-                onClick={() => setExpanded(expanded === a.id ? null : a.id)}
-              >
-                <CardContent className="flex items-center gap-4 p-4">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-secondary">
-                    {a.media_type === "image" ? (
-                      <img src={a.media_url} alt="" className="h-full w-full object-cover" />
-                    ) : (
-                      <Film className="h-5 w-5 text-muted-foreground" />
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">{a.recovered_prompt || "No prompt"}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {a.file_name} · {new Date(a.created_at).toLocaleDateString()}
-                    </p>
-                  </div>
-                  {a.model_guess && <Badge variant="outline" className="shrink-0">{a.model_guess}</Badge>}
-                  <Button variant="ghost" size="icon" className="shrink-0" onClick={(e) => { e.stopPropagation(); deleteAnalysis(a.id); }}>
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                </CardContent>
-              </Card>
-              {expanded === a.id && (
-                <div className="mt-2 ml-4">
-                  <AnalysisResult
-                    data={{
-                      recovered_prompt: a.recovered_prompt || "",
-                      model_guess: a.model_guess || "Unknown",
-                      settings: (a.settings as Record<string, string>) || {},
-                      style_tags: a.style_tags || [],
-                      copy_ready_prompts: (a.copy_ready_prompts as Record<string, string>) || {},
-                    }}
-                  />
-                </div>
-              )}
+
+        <div className="mt-8">
+          {loading ? (
+            <div className="flex justify-center py-20">
+              <div className="h-5 w-5 animate-spin rounded-full border-2 border-foreground border-t-transparent" />
             </div>
-          ))}
+          ) : filtered.length === 0 ? (
+            <p className="py-20 text-sm text-muted-foreground">
+              {search ? "No results." : "No analyses yet."}
+            </p>
+          ) : (
+            <div className="divide-y divide-border">
+              {filtered.map((a) => (
+                <div key={a.id}>
+                  <button
+                    onClick={() => setExpanded(expanded === a.id ? null : a.id)}
+                    className="flex w-full items-center gap-4 py-4 text-left transition-colors hover:bg-secondary/30"
+                  >
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded bg-secondary">
+                      {a.media_type === "image" ? (
+                        <img src={a.media_url} alt="" className="h-full w-full object-cover" />
+                      ) : (
+                        <Film className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm">{a.recovered_prompt || "No prompt"}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {a.file_name} · {new Date(a.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                    {a.model_guess && (
+                      <span className="shrink-0 rounded bg-secondary px-2 py-1 text-xs text-muted-foreground">
+                        {a.model_guess}
+                      </span>
+                    )}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); deleteAnalysis(a.id); }}
+                      className="shrink-0 rounded p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </button>
+                  {expanded === a.id && (
+                    <div className="pb-6 pl-14">
+                      <AnalysisResult
+                        data={{
+                          recovered_prompt: a.recovered_prompt || "",
+                          model_guess: a.model_guess || "Unknown",
+                          settings: (a.settings as Record<string, string>) || {},
+                          style_tags: a.style_tags || [],
+                          copy_ready_prompts: (a.copy_ready_prompts as Record<string, string>) || {},
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-      )}
+      </motion.div>
     </div>
   );
 }
