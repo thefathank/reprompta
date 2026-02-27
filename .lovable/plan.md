@@ -1,45 +1,23 @@
 
 
-# AI Prompt Reverse Engineer
+## Plan
 
-A tool that analyzes AI-generated images and videos to recover the original prompt, settings, and style information — with user accounts and saved history.
+### 1. Mouse-following yellow glow on Auth page
+- Track mouse position with `onMouseMove` on the outer container
+- Render a large (`~400px`) radial gradient div positioned at the cursor coordinates using `motion.div` with smooth spring-based animation
+- Use accent color (`hsl(45 100% 58%)`) at low opacity (~0.07) so it's soft and ambient
+- `pointer-events-none` so it doesn't interfere with form interactions
 
-## Pages & Navigation
+### 2. Feature the recovered_prompt animation on Auth page
+- Import the same `prompts` array and card animation from Index into Auth
+- Add a cycling prompt card behind/beside the form — positioned absolutely, slightly offset and rotated
+- Show a single active card that fades/swaps every ~4 seconds with a typewriter or fade transition
+- Smaller scale than the homepage version — acts as a visual accent rather than a full feature block
+- Include the `recovered_prompt` label and model/tag badges to reinforce what the product does
 
-1. **Landing Page** — Hero section explaining the tool, CTA to upload or sign up
-2. **Auth Pages** — Sign up / Login with email & password
-3. **Analyzer Page** (main tool) — Upload media, get full prompt breakdown
-4. **History Page** — Browse and search past analyses
-
-## Core Feature: Media Analysis
-
-- **Upload area** with drag-and-drop support for images (JPG, PNG, WEBP) and videos (MP4, WEBM)
-- After upload, an AI model (via Lovable AI) analyzes the media and returns:
-  - **Recovered prompt** — the estimated text prompt
-  - **Model guess** — e.g. Midjourney, DALL·E, Stable Diffusion, Sora, Runway
-  - **Settings** — aspect ratio, style preset, CFG scale, steps, etc.
-  - **Style tags** — art style, lighting, composition keywords
-  - **Copy-ready prompts** — formatted for different AI tools (Midjourney, DALL·E, ComfyUI, etc.)
-- One-click copy buttons for each output section
-- Loading state with progress indicator during analysis
-
-## User Accounts & History
-
-- Email/password auth with Supabase
-- User profiles table
-- **Analyses table** storing: uploaded media URL, recovered prompt, full breakdown JSON, timestamp
-- History page with thumbnail previews, searchable by prompt keywords
-- Ability to delete past analyses
-
-## Design
-
-- Dark theme by default (fits creative/AI tooling aesthetic)
-- Clean, modern UI with card-based result layout
-- Responsive for desktop and mobile
-
-## Backend
-
-- Lovable Cloud + Supabase for auth, database, and file storage
-- Edge function calling Lovable AI (Gemini vision model) to analyze uploaded media
-- Storage bucket for uploaded images/videos
+### Technical approach
+- All changes in `src/pages/Auth.tsx` only
+- Add `useState` for mouse position, `useEffect` for prompt cycling
+- The glow div uses `style={{ left: mouseX, top: mouseY, transform: 'translate(-50%, -50%)' }}` with `motion.div` for smooth lag
+- The prompt card sits in the background layer behind the form with reduced opacity
 
