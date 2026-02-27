@@ -3,29 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { toast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
-
-const prompts = [
-  {
-    text: "A cyberpunk cityscape at dusk, neon reflections on wet pavement, volumetric fog...",
-    model: "Midjourney v6",
-    tags: ["--ar 16:9", "--style raw"],
-  },
-  {
-    text: "Elderly woman's hands shaping clay on a wheel, dramatic chiaroscuro lighting, 35mm film grain...",
-    model: "DALL·E 3",
-    tags: ["1024×1024", "vivid"],
-  },
-  {
-    text: "Isometric tiny world inside a glass terrarium, miniature waterfalls, bioluminescent plants...",
-    model: "Stable Diffusion XL",
-    tags: ["--steps 30", "--cfg 7.5"],
-  },
-  {
-    text: "Abandoned brutalist library overgrown with vines, golden hour light streaming through broken skylights...",
-    model: "Runway Gen-3",
-    tags: ["16:9", "cinematic"],
-  },
-];
+import { prompts } from "@/data/prompts";
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
@@ -101,7 +79,7 @@ export default function Auth() {
 
       {/* Cycling prompt card — background accent */}
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-        <div className="relative w-[460px] translate-y-[240px] lg:translate-x-[340px] lg:translate-y-0">
+        <div className="relative w-[700px] translate-y-[280px] lg:translate-x-[360px] lg:translate-y-0">
           <AnimatePresence mode="wait">
             <motion.div
               key={promptIdx}
@@ -110,19 +88,19 @@ export default function Auth() {
               exit={{ opacity: 0, y: -12, rotate: -3 }}
               transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
             >
-              <div className="surface-glass rounded-xl border border-border/40 p-7">
-                <div className="rim-light rounded-md px-4 py-3">
+              <div className="surface-glass rounded-xl border border-border/40 p-9">
+                <div className="rim-light rounded-md px-6 py-5">
                   <p className="font-mono text-xs text-muted-foreground tracking-wider">recovered_prompt</p>
-                  <p className="mt-2 text-sm leading-relaxed text-foreground line-clamp-3">
+                  <p className="mt-3 text-base leading-relaxed text-foreground">
                     {prompts[promptIdx].text}
                   </p>
                 </div>
-                <div className="mt-3 flex gap-2">
-                  <span className="rounded bg-secondary px-2.5 py-1 text-xs text-secondary-foreground">
+                <div className="mt-4 flex gap-2">
+                  <span className="rounded bg-secondary px-3 py-1.5 text-sm text-secondary-foreground">
                     {prompts[promptIdx].model}
                   </span>
                   {prompts[promptIdx].tags.map((tag) => (
-                    <span key={tag} className="rounded bg-secondary px-2.5 py-1 text-xs text-secondary-foreground">
+                    <span key={tag} className="rounded bg-secondary px-3 py-1.5 text-sm text-secondary-foreground">
                       {tag}
                     </span>
                   ))}
