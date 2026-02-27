@@ -140,7 +140,8 @@ export default function Index() {
           transition={{ duration: 1, delay: 0.4, ease: [0.25, 0.1, 0.25, 1] as [number, number, number, number] }}
           className="absolute right-[-4%] top-[12%] hidden w-[720px] lg:block"
         >
-          <div className="relative" style={{ height: 420 }}>
+          <LiveCount />
+          <div className="relative mt-2" style={{ height: 420 }}>
             {prompts.map((prompt, i) => {
               const offset = (i - promptIdx + prompts.length) % prompts.length;
               const isActive = offset === 0;
@@ -185,7 +186,6 @@ export default function Index() {
               );
             })}
           </div>
-          <LiveCount />
         </motion.div>
       </section>
 
