@@ -53,6 +53,11 @@ Be thorough and specific. Analyze composition, lighting, style, color palette, s
         type: "image_url",
         image_url: { url: mediaUrl },
       });
+    } else if (mediaType === "video") {
+      userContent.push({
+        type: "video_url",
+        video_url: { url: mediaUrl },
+      });
     }
 
     const tools = [
