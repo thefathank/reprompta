@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useAuth } from "@/lib/auth";
+import { toast } from "@/hooks/use-toast";
 import { getTierByProductId } from "@/lib/subscription";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -29,8 +30,13 @@ export default function PaymentSuccess() {
   }, []);
 
   // Stop refreshing once subscription is confirmed
+  const toastShown = useRef(false);
   useEffect(() => {
-    if (subscription.subscribed) setRefreshing(false);
+    if (subscription.subscribed && !toastShown.current) {
+      toastShown.current = true;
+      setRefreshing(false);
+      toast({ title: "Subscription activated!", description: "Your plan has been upgraded." });
+    }
   }, [subscription.subscribed]);
 
   const tier = getTierByProductId(subscription.productId);
