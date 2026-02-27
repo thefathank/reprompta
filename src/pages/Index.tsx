@@ -145,7 +145,8 @@ export default function Index() {
             {prompts.map((prompt, i) => {
               const offset = (i - promptIdx + prompts.length) % prompts.length;
               const isActive = offset === 0;
-              const visible = offset <= 3;
+              const isExiting = offset === prompts.length - 1;
+              const visible = offset <= 3 || isExiting;
               const opacityMap = [1, 0.6, 0.35, 0.18];
               const rotateMap = [0, 2, 3.5, 4.5];
 
@@ -153,19 +154,29 @@ export default function Index() {
                 <motion.div
                   key={i}
                   animate={{
-                    y: offset * 24,
-                    x: offset * 10,
-                    scale: 1 - offset * 0.03,
-                    rotate: rotateMap[offset] ?? 4.5,
-                    zIndex: prompts.length - offset,
-                    opacity: visible ? (opacityMap[offset] ?? 0) : 0,
+                    y: isExiting ? -60 : offset * 24,
+                    x: isExiting ? -120 : offset * 10,
+                    scale: isExiting ? 0.92 : 1 - offset * 0.03,
+                    rotate: isExiting ? -8 : (rotateMap[offset] ?? 4.5),
+                    zIndex: isExiting ? prompts.length + 1 : prompts.length - offset,
+                    opacity: isExiting ? 0 : visible ? (opacityMap[offset] ?? 0) : 0,
                   }}
                   transition={{
-                    y: { type: "spring", stiffness: 200, damping: 22 },
-                    x: { type: "spring", stiffness: 200, damping: 22 },
-                    scale: { type: "spring", stiffness: 200, damping: 22 },
-                    rotate: { type: "spring", stiffness: 200, damping: 22 },
-                    opacity: { duration: 0.15, ease: "easeOut" },
+                    y: isExiting
+                      ? { duration: 0.45, ease: [0.4, 0, 0.2, 1] }
+                      : { type: "spring", stiffness: 200, damping: 22 },
+                    x: isExiting
+                      ? { duration: 0.45, ease: [0.4, 0, 0.2, 1] }
+                      : { type: "spring", stiffness: 200, damping: 22 },
+                    scale: isExiting
+                      ? { duration: 0.4, ease: "easeOut" }
+                      : { type: "spring", stiffness: 200, damping: 22 },
+                    rotate: isExiting
+                      ? { duration: 0.45, ease: [0.4, 0, 0.2, 1] }
+                      : { type: "spring", stiffness: 200, damping: 22 },
+                    opacity: isExiting
+                      ? { duration: 0.35, ease: "easeOut" }
+                      : { duration: 0.15, ease: "easeOut" },
                     zIndex: { duration: 0 },
                   }}
                   className="absolute inset-x-0 top-0"
