@@ -1,32 +1,34 @@
 
 
-## Plan: Scale up recovered_prompt cards on both pages
+## Fix: Prompt text bleeding during card transitions
 
-### Current state
-- **Index.tsx**: Card container is `w-[500px]`, card height area `260px`, prompt text truncated to 3 lines, prompts use short ellipsized text
-- **Auth.tsx**: Card container is `w-[460px]`, single cycling card, prompt text truncated to 3 lines
+### Root cause
+All prompt cards are rendered simultaneously and repositioned via spring animations. During the transition, the outgoing card's text is still visible while it animates to its new position, causing a brief overlap where both texts are readable.
 
-### Changes
+The spring transition (`stiffness: 200, damping: 22`) is relatively bouncy/slow, so the z-index and opacity changes don't resolve instantly — the old "active" card fades out while the new one fades in, creating a visible text bleed.
 
-#### 1. Expand prompt text content
-Replace the short, ellipsized prompt strings with full-length sample prompts (3-5 sentences each) so the cards have real readable content.
+### Fix
+Add `overflow-hidden` to each card's inner content area and use `layout` or `AnimatePresence` — but the simplest effective fix is:
 
-#### 2. Index.tsx — scale up the card stack
-- Increase card container width from `w-[500px]` to `w-[720px]`
-- Increase card stack height from `260px` to `420px`
-- Remove `line-clamp-3` so full prompt text is visible
-- Increase inner padding from `p-7` to `p-9`, and inner content padding from `px-4 py-3` to `px-6 py-5`
-- Bump text size from `text-sm` to `text-base`
-- Increase tag/badge size slightly
-- Adjust card stack offsets (`y`, `x`, `scale`) proportionally for the larger size
+1. **Use `key={promptIdx + '-' + i}` or re-key based on offset** — not ideal since all cards persist.
+2. **Better approach**: Make the z-index transition instant (not spring-animated) and ensure opacity snaps faster for the departing card.
 
-#### 3. Auth.tsx — scale up the cycling card
-- Increase container width from `w-[460px]` to `w-[700px]`
-- Remove `line-clamp-3` to show full prompt text
-- Match the same padding and text size increases as Index
-- Adjust positioning (`translate-x`, `translate-y`) so it remains balanced behind the form
+Specifically in `src/pages/Index.tsx`:
+- Split the `animate` into two separate transition configs using `motion.div`'s `transition` prop with per-property control
+- Make `opacity` use a tween with very short duration (~0.15s) instead of the spring, so the old active card fades out quickly before the new one fully appears
+- Keep `y`, `x`, `scale`, `rotate` on the spring for smooth physical movement
 
-#### Files modified
-- `src/pages/Index.tsx`
-- `src/pages/Auth.tsx`
+```tsx
+transition={{
+  y: { type: "spring", stiffness: 200, damping: 22 },
+  x: { type: "spring", stiffness: 200, damping: 22 },
+  scale: { type: "spring", stiffness: 200, damping: 22 },
+  rotate: { type: "spring", stiffness: 200, damping: 22 },
+  opacity: { duration: 0.15, ease: "easeOut" },
+  zIndex: { duration: 0 },
+}}
+```
+
+### Files modified
+- `src/pages/Index.tsx` — update the card `motion.div` transition prop
 
