@@ -65,24 +65,33 @@ export type Database = {
           display_name: string | null
           email: string | null
           id: string
+          image_analyses_used: number
           updated_at: string
+          usage_reset_at: string
           user_id: string
+          video_analyses_used: number
         }
         Insert: {
           created_at?: string
           display_name?: string | null
           email?: string | null
           id?: string
+          image_analyses_used?: number
           updated_at?: string
+          usage_reset_at?: string
           user_id: string
+          video_analyses_used?: number
         }
         Update: {
           created_at?: string
           display_name?: string | null
           email?: string | null
           id?: string
+          image_analyses_used?: number
           updated_at?: string
+          usage_reset_at?: string
           user_id?: string
+          video_analyses_used?: number
         }
         Relationships: []
       }

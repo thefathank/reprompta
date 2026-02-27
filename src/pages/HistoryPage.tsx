@@ -2,9 +2,11 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { Search, Trash2, Film } from "lucide-react";
+import { Search, Trash2, Film, Lock } from "lucide-react";
 import { AnalysisResult } from "@/components/AnalysisResult";
 import { motion } from "framer-motion";
+import { getTierByProductId } from "@/lib/subscription";
+import { useNavigate } from "react-router-dom";
 
 interface AnalysisRow {
   id: string;
@@ -21,7 +23,9 @@ interface AnalysisRow {
 }
 
 export default function HistoryPage() {
-  const { user } = useAuth();
+  const { user, subscription } = useAuth();
+  const navigate = useNavigate();
+  const tier = getTierByProductId(subscription.productId);
   const [analyses, setAnalyses] = useState<AnalysisRow[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -54,6 +58,23 @@ export default function HistoryPage() {
       if (expanded === id) setExpanded(null);
     }
   };
+
+  // Gate: free tier can't access history
+  if (!tier.history && !subscription.isLoading) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 px-6">
+        <Lock className="h-8 w-8 text-muted-foreground" />
+        <h2 className="text-xl font-semibold">History is a paid feature</h2>
+        <p className="text-sm text-muted-foreground">Upgrade to Basic or Pro to access your analysis history.</p>
+        <button
+          onClick={() => navigate("/pricing")}
+          className="mt-2 flex h-10 items-center rounded-md bg-foreground px-6 text-sm font-semibold text-background transition-opacity hover:opacity-90"
+        >
+          View Plans
+        </button>
+      </div>
+    );
+  }
 
   const filtered = analyses.filter((a) =>
     !search || (a.recovered_prompt?.toLowerCase().includes(search.toLowerCase()) ||
