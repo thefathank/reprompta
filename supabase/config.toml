@@ -1,0 +1,4 @@
+project_id = "keaanjljtbauoewtmurv"
+
+[functions.analyze-media]
+verify_jwt = false
