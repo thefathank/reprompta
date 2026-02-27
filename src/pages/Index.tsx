@@ -22,7 +22,7 @@ function LiveCount() {
   }, []);
 
   return (
-    <p className="mt-5 font-mono text-xs text-muted-foreground tabular-nums">
+    <p className="mt-2 font-mono text-xs text-muted-foreground tabular-nums">
       {count.toLocaleString()} prompts recovered
     </p>
   );
