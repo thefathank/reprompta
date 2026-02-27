@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 interface AnalysisData {
   recovered_prompt: string;
   model_guess: string;
+  confidence_score?: number;
   settings: Record<string, string>;
   style_tags: string[];
   copy_ready_prompts: Record<string, string>;
