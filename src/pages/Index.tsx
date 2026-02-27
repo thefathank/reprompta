@@ -145,20 +145,20 @@ export default function Index() {
             {prompts.map((prompt, i) => {
               const offset = (i - promptIdx + prompts.length) % prompts.length;
               const isActive = offset === 0;
-              const isBehind1 = offset === 1;
-              const isBehind2 = offset === 2;
-              const visible = offset <= 2;
+              const visible = offset <= 3;
+              const opacityMap = [1, 0.6, 0.35, 0.18];
+              const rotateMap = [0, 2, 3.5, 4.5];
 
               return (
                 <motion.div
                   key={i}
                   animate={{
-                    y: offset * 18,
-                    x: offset * 6,
-                    scale: 1 - offset * 0.04,
-                    rotate: isActive ? 0 : isBehind1 ? 1.5 : 2.5,
+                    y: offset * 24,
+                    x: offset * 10,
+                    scale: 1 - offset * 0.03,
+                    rotate: rotateMap[offset] ?? 4.5,
                     zIndex: prompts.length - offset,
-                    opacity: visible ? (isActive ? 1 : isBehind1 ? 0.5 : 0.25) : 0,
+                    opacity: visible ? (opacityMap[offset] ?? 0) : 0,
                   }}
                   transition={{
                     y: { type: "spring", stiffness: 200, damping: 22 },
