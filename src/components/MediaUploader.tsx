@@ -15,13 +15,30 @@ const ACCEPTED = {
 const ALL_TYPES = [...ACCEPTED.image, ...ACCEPTED.video];
 const MAX_SIZE_MB = 20;
 const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
+const MAX_VIDEO_DURATION_S = 30;
+
+function checkVideoDuration(file: File): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const video = document.createElement("video");
+    video.preload = "metadata";
+    video.onloadedmetadata = () => {
+      URL.revokeObjectURL(video.src);
+      resolve(video.duration);
+    };
+    video.onerror = () => {
+      URL.revokeObjectURL(video.src);
+      reject(new Error("Could not read video metadata"));
+    };
+    video.src = URL.createObjectURL(file);
+  });
+}
 
 export function MediaUploader({ onFileSelect, disabled }: MediaUploaderProps) {
   const [dragOver, setDragOver] = useState(false);
   const [preview, setPreview] = useState<{ url: string; type: "image" | "video"; name: string } | null>(null);
 
   const handleFile = useCallback(
-    (file: File) => {
+    async (file: File) => {
       if (!ALL_TYPES.includes(file.type)) return;
       if (file.size > MAX_SIZE_BYTES) {
         toast({
@@ -32,6 +49,21 @@ export function MediaUploader({ onFileSelect, disabled }: MediaUploaderProps) {
         return;
       }
       const type = file.type.startsWith("image") ? "image" : "video";
+      if (type === "video") {
+        try {
+          const duration = await checkVideoDuration(file);
+          if (duration > MAX_VIDEO_DURATION_S) {
+            toast({
+              title: "Video too long",
+              description: `Maximum duration is ${MAX_VIDEO_DURATION_S}s. Your video is ${Math.round(duration)}s.`,
+              variant: "destructive",
+            });
+            return;
+          }
+        } catch {
+          // If we can't read metadata, allow it through
+        }
+      }
       setPreview({ url: URL.createObjectURL(file), type, name: file.name });
       onFileSelect(file);
     },
@@ -94,7 +126,7 @@ export function MediaUploader({ onFileSelect, disabled }: MediaUploaderProps) {
       <Upload className="h-5 w-5 text-muted-foreground" />
       <div>
         <p className="text-sm font-medium text-foreground">Drop media here or click to upload</p>
-        <p className="mt-1 text-xs text-muted-foreground">JPG, PNG, WEBP, MP4, WEBM</p>
+        <p className="mt-1 text-xs text-muted-foreground">JPG, PNG, WEBP, MP4, WEBM · Max 20MB · Videos ≤ 30s</p>
       </div>
       <input type="file" accept={ALL_TYPES.join(",")} className="hidden" onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])} disabled={disabled} />
     </label>
