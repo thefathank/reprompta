@@ -6,11 +6,18 @@ import { AnalysisResult } from "@/components/AnalysisResult";
 import { ModelComparison, type ModelResult } from "@/components/ModelComparison";
 import { toast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
-import { Loader2, Lock } from "lucide-react";
+import { Loader2, Lock, Sparkles } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { getTierByProductId, getTierKey } from "@/lib/subscription";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 interface AnalysisData {
   recovered_prompt: string;
@@ -65,6 +72,7 @@ export default function Analyze() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [file, setFile] = useState<File | null>(null);
+  const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AnalysisData | null>(null);
   const [compareMode, setCompareMode] = useState(false);
@@ -289,32 +297,56 @@ export default function Analyze() {
           </div>
         )}
 
-        {/* Compare toggle — Pro only */}
-        {tier.compare && (
-          <div className="mt-6 flex items-center gap-3">
-            <Switch
-              id="compare-mode"
-              checked={compareMode}
-              onCheckedChange={(v) => {
-                setCompareMode(v);
-                setResult(null);
-                setCompareResults([]);
-              }}
-              disabled={loading}
-            />
-            <Label htmlFor="compare-mode" className="text-sm font-medium">
-              Compare models
-            </Label>
-          </div>
-        )}
+        {/* Compare toggle — always visible */}
+        <div className="mt-6 flex items-center gap-3">
+          <Switch
+            id="compare-mode"
+            checked={compareMode}
+            onCheckedChange={(v) => {
+              if (!tier.compare) {
+                setShowUpgradeDialog(true);
+                return;
+              }
+              setCompareMode(v);
+              setResult(null);
+              setCompareResults([]);
+            }}
+            disabled={loading}
+          />
+          <Label htmlFor="compare-mode" className="text-sm font-medium flex items-center gap-1.5">
+            Compare models
+            {!tier.compare && <Lock className="h-3 w-3 text-muted-foreground" />}
+          </Label>
+        </div>
 
-        {/* Non-pro hint */}
-        {!tier.compare && (
-          <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
-            <Lock className="h-3 w-3" />
-            <span>Model comparison available on Pro plan</span>
-          </div>
-        )}
+        {/* Upgrade dialog */}
+        <Dialog open={showUpgradeDialog} onOpenChange={setShowUpgradeDialog}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-accent" />
+                Upgrade to Pro
+              </DialogTitle>
+              <DialogDescription>
+                Model comparison lets you run your analysis across 3 AI models side-by-side. Upgrade to Pro to unlock this feature.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="mt-4 flex justify-end gap-3">
+              <button
+                onClick={() => setShowUpgradeDialog(false)}
+                className="flex h-10 items-center rounded-md border border-border px-5 text-sm font-medium transition-colors hover:bg-secondary"
+              >
+                Maybe later
+              </button>
+              <button
+                onClick={() => navigate("/pricing")}
+                className="flex h-10 items-center rounded-md bg-accent px-5 text-sm font-semibold text-accent-foreground transition-opacity hover:opacity-90"
+              >
+                View Plans
+              </button>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Video gate for free tier */}
         {tierKey === "free" && (
