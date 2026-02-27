@@ -138,10 +138,10 @@ export default function Index() {
           initial={{ opacity: 0, x: 40 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 1, delay: 0.4, ease: [0.25, 0.1, 0.25, 1] as [number, number, number, number] }}
-          className="absolute right-[-4%] top-[12%] hidden w-[720px] lg:block"
+          className="absolute right-[-4%] top-[12%] hidden w-[480px] lg:block xl:w-[600px] 2xl:w-[720px]"
         >
           <LiveCount />
-          <div className="relative mt-2" style={{ height: 420 }}>
+          <div className="relative mt-2 h-[300px] xl:h-[360px] 2xl:h-[420px]">
             {prompts.map((prompt, i) => {
               const offset = (i - promptIdx + prompts.length) % prompts.length;
               const isActive = offset === 0;
@@ -171,19 +171,19 @@ export default function Index() {
                   className="absolute inset-x-0 top-0"
                   style={{ transformOrigin: "bottom left" }}
                 >
-                  <div className={`surface-glass rounded-xl border p-9 ${isActive ? 'card-glow border-accent/20' : 'border-border/40'}`}>
-                    <div className="rim-light rounded-md px-6 py-5">
+                  <div className={`surface-glass rounded-xl border p-5 xl:p-7 2xl:p-9 ${isActive ? 'card-glow border-accent/20' : 'border-border/40'}`}>
+                    <div className="rim-light rounded-md px-4 py-3 xl:px-5 xl:py-4 2xl:px-6 2xl:py-5">
                       <p className="font-mono text-xs text-muted-foreground tracking-wider">recovered_prompt</p>
-                      <p className="mt-3 text-base leading-relaxed text-foreground">
+                      <p className="mt-2 text-sm leading-relaxed text-foreground xl:mt-3 xl:text-base">
                         {prompt.text}
                       </p>
                     </div>
-                    <div className="mt-4 flex gap-2">
-                      <span className="rounded bg-secondary px-3 py-1.5 text-sm text-secondary-foreground">
+                    <div className="mt-3 flex flex-wrap gap-2 xl:mt-4">
+                      <span className="rounded bg-secondary px-2.5 py-1 text-xs text-secondary-foreground xl:px-3 xl:py-1.5 xl:text-sm">
                         {prompt.model}
                       </span>
                       {prompt.tags.map((tag) => (
-                        <span key={tag} className="rounded bg-secondary px-3 py-1.5 text-sm text-secondary-foreground">
+                        <span key={tag} className="rounded bg-secondary px-2.5 py-1 text-xs text-secondary-foreground xl:px-3 xl:py-1.5 xl:text-sm">
                           {tag}
                         </span>
                       ))}
