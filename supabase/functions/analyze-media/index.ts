@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { mediaUrl, mediaType } = await req.json();
+    const { mediaUrl, mediaType, model } = await req.json();
 
     if (!mediaUrl || !mediaType) {
       return new Response(JSON.stringify({ error: "mediaUrl and mediaType are required" }), {
@@ -100,6 +100,8 @@ Be thorough and specific. Analyze composition, lighting, style, color palette, s
       },
     ];
 
+    const selectedModel = model || "google/gemini-2.5-flash";
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -107,7 +109,7 @@ Be thorough and specific. Analyze composition, lighting, style, color palette, s
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: selectedModel,
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userContent },
