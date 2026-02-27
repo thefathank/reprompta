@@ -145,7 +145,9 @@ export function MediaUploader({ onFileSelect, disabled, acceptVideo = true }: Me
           <Upload className="h-5 w-5 text-muted-foreground" />
           <div>
             <p className="text-sm font-medium text-foreground">Drop media here or click to upload</p>
-            <p className="mt-1 text-xs text-muted-foreground">JPG, PNG, WEBP, MP4, WEBM · Max 20MB · Videos ≤ 30s</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {acceptVideo ? "JPG, PNG, WEBP, MP4, WEBM · Max 20MB · Videos ≤ 30s" : "JPG, PNG, WEBP · Max 20MB"}
+            </p>
           </div>
         </>
       )}
