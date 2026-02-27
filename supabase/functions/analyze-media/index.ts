@@ -100,7 +100,7 @@ Be thorough and specific. Analyze composition, lighting, style, color palette, s
       },
     ];
 
-    const selectedModel = model || "google/gemini-2.5-flash";
+    const selectedModel = model || "google/gemini-2.5-flash"; // default model
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
