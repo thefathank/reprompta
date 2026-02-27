@@ -1,7 +1,31 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight } from "lucide-react";
+import { useState, useEffect } from "react";
+
+const prompts = [
+  {
+    text: "A cyberpunk cityscape at dusk, neon reflections on wet pavement, volumetric fog...",
+    model: "Midjourney v6",
+    tags: ["--ar 16:9", "--style raw"],
+  },
+  {
+    text: "Elderly woman's hands shaping clay on a wheel, dramatic chiaroscuro lighting, 35mm film grain...",
+    model: "DALL·E 3",
+    tags: ["1024×1024", "vivid"],
+  },
+  {
+    text: "Isometric tiny world inside a glass terrarium, miniature waterfalls, bioluminescent plants...",
+    model: "Stable Diffusion XL",
+    tags: ["--steps 30", "--cfg 7.5"],
+  },
+  {
+    text: "Abandoned brutalist library overgrown with vines, golden hour light streaming through broken skylights...",
+    model: "Runway Gen-3",
+    tags: ["16:9", "cinematic"],
+  },
+];
 
 const ease = [0.25, 0.1, 0.25, 1] as const;
 
@@ -16,6 +40,14 @@ const fade = {
 
 export default function Index() {
   const { user } = useAuth();
+  const [promptIdx, setPromptIdx] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setPromptIdx((i) => (i + 1) % prompts.length);
+    }, 4000);
+    return () => clearInterval(timer);
+  }, []);
 
   return (
     <div className="relative min-h-screen overflow-hidden">
@@ -98,23 +130,40 @@ export default function Index() {
               <div className="h-2 w-1/2 rounded-full bg-muted" />
             </div>
             <div className="space-y-3">
-              <div className="rim-light rounded-md px-4 py-3">
+              <div className="rim-light relative overflow-hidden rounded-md px-4 py-3" style={{ minHeight: 72 }}>
                 <p className="font-mono text-xs text-muted-foreground">recovered_prompt</p>
-                <p className="mt-1 text-sm text-foreground">
-                  A cyberpunk cityscape at dusk, neon reflections on wet pavement...
-                </p>
+                <AnimatePresence mode="wait">
+                  <motion.p
+                    key={promptIdx}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.4 }}
+                    className="mt-1 text-sm text-foreground"
+                  >
+                    {prompts[promptIdx].text}
+                  </motion.p>
+                </AnimatePresence>
               </div>
-              <div className="flex gap-2">
-                <span className="rounded bg-secondary px-2.5 py-1 text-xs text-secondary-foreground">
-                  Midjourney v6
-                </span>
-                <span className="rounded bg-secondary px-2.5 py-1 text-xs text-secondary-foreground">
-                  --ar 16:9
-                </span>
-                <span className="rounded bg-secondary px-2.5 py-1 text-xs text-secondary-foreground">
-                  --style raw
-                </span>
-              </div>
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={promptIdx}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="flex gap-2"
+                >
+                  <span className="rounded bg-secondary px-2.5 py-1 text-xs text-secondary-foreground">
+                    {prompts[promptIdx].model}
+                  </span>
+                  {prompts[promptIdx].tags.map((tag) => (
+                    <span key={tag} className="rounded bg-secondary px-2.5 py-1 text-xs text-secondary-foreground">
+                      {tag}
+                    </span>
+                  ))}
+                </motion.div>
+              </AnimatePresence>
             </div>
           </div>
         </motion.div>
