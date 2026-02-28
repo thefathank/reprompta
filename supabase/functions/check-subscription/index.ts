@@ -39,6 +39,19 @@ serve(async (req) => {
     if (!user?.email) throw new Error("User not authenticated or email not available");
     logStep("User authenticated", { userId: user.id, email: user.email });
 
+    // Dev override: grant Pro access without Stripe subscription
+    const DEV_PRO_EMAILS = ["harmistead@gmail.com"];
+    if (DEV_PRO_EMAILS.includes(user.email)) {
+      logStep("Dev override: granting Pro access", { email: user.email });
+      return new Response(JSON.stringify({
+        subscribed: true,
+        product_id: "prod_U3hPjfcoCqFHnj",
+        subscription_end: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
 
