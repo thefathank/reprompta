@@ -224,7 +224,12 @@ export default function Analyze() {
       const { data: fnData, error: fnError } = await supabase.functions.invoke("analyze-media", {
         body: { mediaUrl, mediaType },
       });
-      if (fnError) throw fnError;
+      if (fnError) {
+        if (fnError.message?.includes("Failed to send")) {
+          throw new Error("Network error — the file may be too large for your connection. Try a smaller image or switch to WiFi.");
+        }
+        throw fnError;
+      }
       const analysis = fnData as AnalysisData;
 
       // Save for logged-in users only (store file path, not URL)
@@ -277,7 +282,12 @@ export default function Analyze() {
             body: { mediaUrl: upload.signedUrl, mediaType: upload.mediaType, model: m.model },
           });
           const durationMs = performance.now() - start;
-          if (fnError) throw fnError;
+          if (fnError) {
+            if (fnError.message?.includes("Failed to send")) {
+              throw new Error("Network error — try a smaller file or switch to WiFi.");
+            }
+            throw fnError;
+          }
           setCompareResults((prev) =>
             prev.map((r, i) => i === idx ? { ...r, data: fnData as AnalysisData, loading: false, durationMs } : r)
           );
