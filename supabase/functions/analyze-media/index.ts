@@ -45,9 +45,12 @@ Be thorough and specific. Analyze composition, lighting, style, color palette, s
     const userContent: any[] = [
       {
         type: "text",
-        text: `Analyze this AI-generated ${mediaType} and reverse engineer its prompt. The media URL is: ${mediaUrl}`,
+        text: `Analyze this AI-generated ${mediaType} and reverse engineer its prompt.`,
       },
     ];
+
+    // Support both URLs and base64 data URIs
+    const isDataUri = mediaUrl.startsWith("data:");
 
     if (mediaType === "image") {
       userContent.push({
@@ -55,10 +58,18 @@ Be thorough and specific. Analyze composition, lighting, style, color palette, s
         image_url: { url: mediaUrl },
       });
     } else if (mediaType === "video") {
-      userContent.push({
-        type: "video_url",
-        video_url: { url: mediaUrl },
-      });
+      if (isDataUri) {
+        // For data URIs, still pass as video_url — the gateway handles it
+        userContent.push({
+          type: "video_url",
+          video_url: { url: mediaUrl },
+        });
+      } else {
+        userContent.push({
+          type: "video_url",
+          video_url: { url: mediaUrl },
+        });
+      }
     }
 
     const tools = [

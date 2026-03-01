@@ -124,7 +124,7 @@ export default function Index() {
             className="mt-12"
           >
             <Link
-              to={user ? "/analyze" : "/auth"}
+              to="/analyze"
               className="group inline-flex items-center gap-3 text-sm font-semibold tracking-wide text-foreground transition-colors hover:text-accent"
             >
               Start analyzing

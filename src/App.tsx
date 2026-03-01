@@ -27,7 +27,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/pricing" element={<Pricing />} />
-            <Route path="/analyze" element={<RequireAuth><Analyze /></RequireAuth>} />
+            <Route path="/analyze" element={<Analyze />} />
             <Route path="/payment-success" element={<RequireAuth><PaymentSuccess /></RequireAuth>} />
             <Route path="/history" element={<RequireAuth><HistoryPage /></RequireAuth>} />
             <Route path="*" element={<NotFound />} />
