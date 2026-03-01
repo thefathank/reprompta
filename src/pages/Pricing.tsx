@@ -3,10 +3,10 @@ import { TIERS, getTierKey } from "@/lib/subscription";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
-import { Check, Sparkles } from "lucide-react";
+import { Check, Sparkles, PartyPopper } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 const plans = [
   {
@@ -38,8 +38,20 @@ const plans = [
 export default function Pricing() {
   const { user, subscription } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const currentTierKey = getTierKey(subscription.productId);
+  const isWelcome = searchParams.get("welcome") === "1";
+
+  // Clear the welcome param from URL after showing
+  useEffect(() => {
+    if (isWelcome) {
+      const timeout = setTimeout(() => {
+        setSearchParams({}, { replace: true });
+      }, 5000);
+      return () => clearTimeout(timeout);
+    }
+  }, [isWelcome, setSearchParams]);
 
   const handleSubscribe = async (priceId: string, tierKey: string) => {
     if (!user) {
@@ -86,6 +98,16 @@ export default function Pricing() {
         className="mx-auto max-w-5xl"
       >
         <div className="text-center">
+          {isWelcome && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mx-auto mb-6 inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/10 px-5 py-2 text-sm font-medium text-accent"
+            >
+              <PartyPopper className="h-4 w-4" />
+              Welcome! Pick a plan to start analyzing.
+            </motion.div>
+          )}
           <h1 className="text-4xl font-bold tracking-tight">Pricing</h1>
           <p className="mt-3 text-muted-foreground">
             Choose the plan that fits your workflow.
