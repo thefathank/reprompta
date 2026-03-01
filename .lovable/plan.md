@@ -1,23 +1,20 @@
 
 
-## Issue Found
+## Add "Analyze Another" CTA after first free analysis
 
-The `SignupGateway` sends `{ priceId, returnUrl }` in the request body, but the `create-checkout` edge function destructures `{ price_id }` — a naming mismatch. This means clicking a plan in the gateway will always fail with "price_id is required".
+Currently, after the first free analysis completes, the result is shown but there's no clear prompt to try again. The uploader stays hidden behind the `!result` condition, so users have no obvious next step. We need to add a compelling CTA below the result that encourages them to upload another image — which will then trigger the paywall.
 
-## Plan
+### Changes to `src/pages/Analyze.tsx`
 
-### 1. Fix the property name mismatch in SignupGateway
-In `src/components/SignupGateway.tsx` line 91, change the body from `{ priceId, returnUrl }` to `{ price_id: priceId }`. The `returnUrl` is unused by the edge function anyway (it hardcodes `/payment-success`).
+1. After the `AnalysisResult` component renders (line ~456), add a prominent "Analyze Another Image" section for anonymous users who have used their free analysis:
+   - A motivating message like "Curious about another image? See what prompt was used."
+   - A button labeled "Analyze Another Image" that resets the current result and file state, bringing back the uploader
+   - When they upload and click Analyze again, the existing `getAnonUsage() >= 1` check kicks in and shows the `SignupGateway`
 
-### 2. No other changes needed
-- The `create-checkout` function already redirects to `/payment-success` on success.
-- The `/payment-success` page already polls `check-subscription` and shows the activated plan.
-- The `AuthProvider` already refreshes subscription state on auth changes and periodically.
-- The Analyze page already reads `subscription.productId` to determine tier and unlock features.
+2. The button's onClick will: `setResult(null); setFile(null);` — clearing the state so the uploader reappears. The next attempt will hit the paywall naturally.
 
-The flow after the fix:
-1. User signs up in gateway
-2. User clicks a plan card → `create-checkout` receives correct `price_id` → returns Stripe checkout URL
-3. User completes Stripe checkout → redirected to `/payment-success`
-4. `/payment-success` polls subscription status → confirms plan → user clicks "Start Analyzing" → back to `/analyze` with full access
+3. For logged-in users, show a simpler "Analyze Another" button that also resets state (no paywall messaging needed).
+
+### No other files need changes
+The paywall logic already works — this is purely about adding a nudge in the post-result UI to guide users into the second attempt.
 
