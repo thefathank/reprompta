@@ -455,28 +455,34 @@ export default function Analyze() {
 
           {result && !compareMode && (
             <>
-              <AnalysisResult data={result} />
               <motion.div
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3, duration: 0.4 }}
-                className="max-w-2xl rounded-lg border border-accent/20 bg-accent/5 p-6 text-center"
+                transition={{ delay: 0.2, duration: 0.4 }}
+                className="relative max-w-2xl overflow-hidden rounded-lg p-px"
+                style={{
+                  background: "linear-gradient(135deg, hsl(45 100% 58% / 0.4), hsl(45 100% 58% / 0.08), hsl(45 100% 58% / 0.3))",
+                }}
               >
-                {isAnon ? (
-                  <>
-                    <p className="text-sm font-medium">Curious about another image?</p>
-                    <p className="mt-1 text-xs text-muted-foreground">See what prompt was used to create it.</p>
-                  </>
-                ) : (
-                  <p className="text-sm text-muted-foreground">Ready to analyze another file?</p>
-                )}
-                <button
-                  onClick={() => { setResult(null); setFile(null); }}
-                  className="mt-4 inline-flex h-10 items-center rounded-md bg-accent px-6 text-sm font-semibold text-accent-foreground transition-opacity hover:opacity-90"
-                >
-                  Analyze Another Image
-                </button>
+                <div className="rounded-[7px] bg-background p-6 text-center">
+                  <Sparkles className="mx-auto mb-3 h-5 w-5 text-accent" />
+                  {isAnon ? (
+                    <>
+                      <p className="text-sm font-medium">Curious about another image?</p>
+                      <p className="mt-1 text-xs text-muted-foreground">See what prompt was used to create it.</p>
+                    </>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Ready to analyze another file?</p>
+                  )}
+                  <button
+                    onClick={() => { setResult(null); setFile(null); }}
+                    className="mt-4 inline-flex h-10 items-center gap-2 rounded-md bg-accent px-6 text-sm font-semibold text-accent-foreground transition-opacity hover:opacity-90"
+                  >
+                    Analyze Another Image
+                  </button>
+                </div>
               </motion.div>
+              <AnalysisResult data={result} />
             </>
           )}
           {compareMode && hasCompareResults && <ModelComparison results={compareResults} />}
