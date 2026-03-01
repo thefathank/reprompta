@@ -1,11 +1,20 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import Stripe from "https://esm.sh/stripe@18.5.0";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+// --- CORS with origin allowlist ---
+function getCorsHeaders(req: Request) {
+  const origin = req.headers.get("origin") || "";
+  const allowed =
+    origin.endsWith(".lovable.app") || origin.startsWith("http://localhost:");
+  return {
+    "Access-Control-Allow-Origin": allowed
+      ? origin
+      : "https://reprompta.lovable.app",
+    "Access-Control-Allow-Headers":
+      "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  };
+}
 
 // Allowed models whitelist
 const ALLOWED_MODELS = new Set([
@@ -22,8 +31,15 @@ const MAX_DATA_URI_SIZE = 20 * 1024 * 1024;
 const ANON_MAX_REQUESTS = 3;
 const ANON_WINDOW_HOURS = 24;
 
+// Tier limits (server-side enforcement)
+const TIER_LIMITS: Record<string, { images: number; videos: number }> = {
+  "prod_U4MJwRZbJp7Nid": { images: 10, videos: 1 }, // Basic
+  "prod_U4MKifk1TpNOWD": { images: 999999, videos: 5 }, // Pro
+};
+const FREE_LIMITS = { images: 1, videos: 0, lifetime: true };
+const DEV_PRO_EMAILS = ["harmistead@gmail.com"];
+
 function getClientIp(req: Request): string {
-  // Check common proxy headers
   const forwarded = req.headers.get("x-forwarded-for");
   if (forwarded) return forwarded.split(",")[0].trim();
   const realIp = req.headers.get("x-real-ip");
@@ -32,6 +48,8 @@ function getClientIp(req: Request): string {
 }
 
 serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -51,60 +69,77 @@ serve(async (req) => {
     const { mediaUrl, mediaType, model } = body;
 
     if (!mediaUrl || !mediaType) {
-      return new Response(JSON.stringify({ error: "mediaUrl and mediaType are required" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "mediaUrl and mediaType are required" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
 
-    // Validate mediaType
     if (mediaType !== "image" && mediaType !== "video") {
-      return new Response(JSON.stringify({ error: "mediaType must be 'image' or 'video'" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "mediaType must be 'image' or 'video'" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
 
-    // Validate model against whitelist
     const selectedModel = model || "google/gemini-2.5-flash";
     if (!ALLOWED_MODELS.has(selectedModel)) {
-      return new Response(JSON.stringify({ error: "Invalid model specified" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "Invalid model specified" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
 
     // Validate mediaUrl format
     const isDataUri = mediaUrl.startsWith("data:");
     if (isDataUri) {
-      // Validate data URI format and size
       if (!/^data:(image|video)\/[\w.+-]+;base64,/.test(mediaUrl)) {
-        return new Response(JSON.stringify({ error: "Invalid data URI format" }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return new Response(
+          JSON.stringify({ error: "Invalid data URI format" }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
       }
       if (mediaUrl.length > MAX_DATA_URI_SIZE) {
-        return new Response(JSON.stringify({ error: "Media too large. Maximum 20MB." }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return new Response(
+          JSON.stringify({ error: "Media too large. Maximum 20MB." }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
       }
     } else {
-      // Validate URL format - must be HTTPS
       try {
         const parsed = new URL(mediaUrl);
         if (parsed.protocol !== "https:") {
-          return new Response(JSON.stringify({ error: "mediaUrl must use HTTPS" }), {
-            status: 400,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
+          return new Response(
+            JSON.stringify({ error: "mediaUrl must use HTTPS" }),
+            {
+              status: 400,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            }
+          );
         }
       } catch {
-        return new Response(JSON.stringify({ error: "Invalid mediaUrl format" }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return new Response(
+          JSON.stringify({ error: "Invalid mediaUrl format" }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
       }
     }
 
@@ -129,35 +164,42 @@ serve(async (req) => {
       }
     }
 
-    // For unauthenticated requests: only allow data URIs (client-side uploads)
-    // and restrict to default model only
+    const adminClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    // --- Unauthenticated: restrictions + IP rate limiting ---
     if (!isAuthenticated) {
       if (!isDataUri) {
-        return new Response(JSON.stringify({ error: "Authentication required for URL-based analysis" }), {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return new Response(
+          JSON.stringify({
+            error: "Authentication required for URL-based analysis",
+          }),
+          {
+            status: 401,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
       }
       if (model && model !== "google/gemini-2.5-flash") {
-        return new Response(JSON.stringify({ error: "Authentication required for model selection" }), {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return new Response(
+          JSON.stringify({
+            error: "Authentication required for model selection",
+          }),
+          {
+            status: 401,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
       }
 
-      // --- Server-side IP rate limiting for anonymous users ---
       const clientIp = getClientIp(req);
-      const adminClient = createClient(
-        Deno.env.get("SUPABASE_URL")!,
-        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-      );
-
-      // Clean up stale entries periodically (best-effort)
       await adminClient.rpc("cleanup_stale_rate_limits").catch(() => {});
+      const windowCutoff = new Date(
+        Date.now() - ANON_WINDOW_HOURS * 60 * 60 * 1000
+      ).toISOString();
 
-      const windowCutoff = new Date(Date.now() - ANON_WINDOW_HOURS * 60 * 60 * 1000).toISOString();
-
-      // Check existing rate limit record
       const { data: existing } = await adminClient
         .from("anon_rate_limits")
         .select("id, request_count, window_start")
@@ -166,33 +208,150 @@ serve(async (req) => {
 
       if (existing) {
         if (existing.window_start > windowCutoff) {
-          // Still within window
           if (existing.request_count >= ANON_MAX_REQUESTS) {
-            return new Response(JSON.stringify({
-              error: "Rate limit exceeded. Sign up for more analyses.",
-            }), {
-              status: 429,
-              headers: { ...corsHeaders, "Content-Type": "application/json" },
-            });
+            return new Response(
+              JSON.stringify({
+                error: "Rate limit exceeded. Sign up for more analyses.",
+              }),
+              {
+                status: 429,
+                headers: { ...corsHeaders, "Content-Type": "application/json" },
+              }
+            );
           }
-          // Increment counter
           await adminClient
             .from("anon_rate_limits")
             .update({ request_count: existing.request_count + 1 })
             .eq("id", existing.id);
         } else {
-          // Window expired — reset
           await adminClient
             .from("anon_rate_limits")
-            .update({ request_count: 1, window_start: new Date().toISOString() })
+            .update({
+              request_count: 1,
+              window_start: new Date().toISOString(),
+            })
             .eq("id", existing.id);
         }
       } else {
-        // First request from this IP
-        await adminClient
-          .from("anon_rate_limits")
-          .insert({ ip_address: clientIp, request_count: 1, window_start: new Date().toISOString() });
+        await adminClient.from("anon_rate_limits").insert({
+          ip_address: clientIp,
+          request_count: 1,
+          window_start: new Date().toISOString(),
+        });
       }
+    }
+
+    // --- Server-side tier enforcement for authenticated users ---
+    if (isAuthenticated && userId) {
+      const { data: profile } = await adminClient
+        .from("profiles")
+        .select(
+          "image_analyses_used, video_analyses_used, usage_reset_at, email"
+        )
+        .eq("user_id", userId)
+        .single();
+
+      if (!profile) {
+        return new Response(
+          JSON.stringify({ error: "User profile not found" }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+
+      // Determine subscription tier
+      let productId: string | null = null;
+
+      if (DEV_PRO_EMAILS.includes(profile.email || "")) {
+        productId = "prod_U4MKifk1TpNOWD";
+      } else {
+        const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+        if (stripeKey && profile.email) {
+          const stripe = new Stripe(stripeKey, {
+            apiVersion: "2025-08-27.basil",
+          });
+          const customers = await stripe.customers.list({
+            email: profile.email,
+            limit: 1,
+          });
+          if (customers.data.length > 0) {
+            const subs = await stripe.subscriptions.list({
+              customer: customers.data[0].id,
+              status: "active",
+              limit: 1,
+            });
+            if (subs.data.length > 0) {
+              productId = subs.data[0].items.data[0].price.product as string;
+            }
+          }
+        }
+      }
+
+      const tierLimits = productId
+        ? TIER_LIMITS[productId] || FREE_LIMITS
+        : FREE_LIMITS;
+      const isLifetime = !productId; // free tier is lifetime
+
+      // Handle monthly reset for subscribed users
+      let imageUsage = profile.image_analyses_used;
+      let videoUsage = profile.video_analyses_used;
+
+      if (!isLifetime) {
+        const resetDate = new Date(profile.usage_reset_at);
+        const now = new Date();
+        if (
+          resetDate.getMonth() !== now.getMonth() ||
+          resetDate.getFullYear() !== now.getFullYear()
+        ) {
+          imageUsage = 0;
+          videoUsage = 0;
+          await adminClient
+            .from("profiles")
+            .update({
+              image_analyses_used: 0,
+              video_analyses_used: 0,
+              usage_reset_at: now.toISOString(),
+            })
+            .eq("user_id", userId);
+        }
+      }
+
+      // Enforce limits
+      if (mediaType === "video" && videoUsage >= tierLimits.videos) {
+        return new Response(
+          JSON.stringify({
+            error: "Video analysis limit reached. Upgrade your plan.",
+          }),
+          {
+            status: 429,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+      if (mediaType === "image" && imageUsage >= tierLimits.images) {
+        return new Response(
+          JSON.stringify({
+            error: "Image analysis limit reached. Upgrade your plan.",
+          }),
+          {
+            status: 429,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+
+      // Increment usage BEFORE AI call (prevents race conditions)
+      const field =
+        mediaType === "image"
+          ? "image_analyses_used"
+          : "video_analyses_used";
+      const currentVal = mediaType === "image" ? imageUsage : videoUsage;
+      await adminClient
+        .from("profiles")
+        .update({ [field]: currentVal + 1 })
+        .eq("user_id", userId);
     }
 
     // --- AI Analysis ---
@@ -241,13 +400,24 @@ Be thorough and specific. Analyze composition, lighting, style, color palette, s
         type: "function",
         function: {
           name: "return_analysis",
-          description: "Return the complete analysis of the AI-generated media",
+          description:
+            "Return the complete analysis of the AI-generated media",
           parameters: {
             type: "object",
             properties: {
-              recovered_prompt: { type: "string", description: "The estimated full text prompt" },
-              model_guess: { type: "string", description: "Best guess of the AI model used" },
-              confidence_score: { type: "number", description: "Confidence score from 0-100 in the analysis quality" },
+              recovered_prompt: {
+                type: "string",
+                description: "The estimated full text prompt",
+              },
+              model_guess: {
+                type: "string",
+                description: "Best guess of the AI model used",
+              },
+              confidence_score: {
+                type: "number",
+                description:
+                  "Confidence score from 0-100 in the analysis quality",
+              },
               settings: {
                 type: "object",
                 additionalProperties: { type: "string" },
@@ -266,49 +436,99 @@ Be thorough and specific. Analyze composition, lighting, style, color palette, s
                   "Stable Diffusion": { type: "string" },
                   ComfyUI: { type: "string" },
                 },
-                required: ["Midjourney", "DALL-E", "Stable Diffusion", "ComfyUI"],
+                required: [
+                  "Midjourney",
+                  "DALL-E",
+                  "Stable Diffusion",
+                  "ComfyUI",
+                ],
                 additionalProperties: false,
               },
             },
-            required: ["recovered_prompt", "model_guess", "confidence_score", "settings", "style_tags", "copy_ready_prompts"],
+            required: [
+              "recovered_prompt",
+              "model_guess",
+              "confidence_score",
+              "settings",
+              "style_tags",
+              "copy_ready_prompts",
+            ],
             additionalProperties: false,
           },
         },
       },
     ];
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: selectedModel,
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userContent },
-        ],
-        tools,
-        tool_choice: { type: "function", function: { name: "return_analysis" } },
-      }),
-    });
+    const response = await fetch(
+      "https://ai.gateway.lovable.dev/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: selectedModel,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userContent },
+          ],
+          tools,
+          tool_choice: {
+            type: "function",
+            function: { name: "return_analysis" },
+          },
+        }),
+      }
+    );
 
     if (!response.ok) {
       const errText = await response.text();
       console.error("AI gateway error:", response.status, errText);
 
+      // Rollback usage on AI failure for authenticated users
+      if (isAuthenticated && userId) {
+        const field =
+          mediaType === "image"
+            ? "image_analyses_used"
+            : "video_analyses_used";
+        const { data: currentProfile } = await adminClient
+          .from("profiles")
+          .select(field)
+          .eq("user_id", userId)
+          .single();
+        if (currentProfile) {
+          const currentVal = (currentProfile as any)[field];
+          if (currentVal > 0) {
+            await adminClient
+              .from("profiles")
+              .update({ [field]: currentVal - 1 })
+              .eq("user_id", userId);
+          }
+        }
+      }
+
       if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return new Response(
+          JSON.stringify({
+            error: "Rate limit exceeded. Please try again in a moment.",
+          }),
+          {
+            status: 429,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
       }
       if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "AI credits depleted. Please add more credits." }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return new Response(
+          JSON.stringify({
+            error: "AI credits depleted. Please add more credits.",
+          }),
+          {
+            status: 402,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
       }
 
       throw new Error(`AI gateway error: ${response.status}`);
@@ -329,8 +549,13 @@ Be thorough and specific. Analyze composition, lighting, style, color palette, s
   } catch (e) {
     console.error("analyze-media error:", e);
     return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({
+        error: e instanceof Error ? e.message : "Unknown error",
+      }),
+      {
+        status: 500,
+        headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+      }
     );
   }
 });
