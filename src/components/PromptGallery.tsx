@@ -1,7 +1,8 @@
 import { useState, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, X, Copy, Check } from "lucide-react";
-import { prompts } from "@/data/prompts";
+import { prompts, modelInfo } from "@/data/prompts";
+import { HoverCard, HoverCardTrigger, HoverCardContent } from "@/components/ui/hover-card";
 
 const allModels = [...new Set(prompts.map((p) => p.model))];
 const allTags = [...new Set(prompts.flatMap((p) => p.tags))];
@@ -137,9 +138,31 @@ export default function PromptGallery() {
                   {prompt.text}
                 </p>
                 <div className="mt-4 flex flex-wrap gap-2">
-                  <span className="rounded bg-accent/15 px-2.5 py-1 text-xs font-medium text-accent">
-                    {prompt.model}
-                  </span>
+                  <HoverCard openDelay={200} closeDelay={100}>
+                    <HoverCardTrigger asChild>
+                      <span className="cursor-help rounded bg-accent/15 px-2.5 py-1 text-xs font-medium text-accent">
+                        {prompt.model}
+                      </span>
+                    </HoverCardTrigger>
+                    {modelInfo[prompt.model] && (
+                      <HoverCardContent side="top" className="w-64 text-sm">
+                        <p className="font-semibold text-foreground">{prompt.model}</p>
+                        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                          {modelInfo[prompt.model].description}
+                        </p>
+                        {modelInfo[prompt.model].url && (
+                          <a
+                            href={modelInfo[prompt.model].url!}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="mt-2 inline-block text-xs font-medium text-accent hover:underline"
+                          >
+                            Learn more →
+                          </a>
+                        )}
+                      </HoverCardContent>
+                    )}
+                  </HoverCard>
                   {prompt.tags.map((tag) => (
                     <span
                       key={tag}
