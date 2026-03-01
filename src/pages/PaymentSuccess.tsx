@@ -51,8 +51,11 @@ export default function PaymentSuccess() {
       toastShown.current = true;
       setRefreshing(false);
       toast({ title: "Subscription activated!", description: "Your plan has been upgraded." });
+      // Auto-redirect to analyze after 4 seconds
+      const timeout = setTimeout(() => navigate("/analyze"), 4000);
+      return () => clearTimeout(timeout);
     }
-  }, [subscription.subscribed]);
+  }, [subscription.subscribed, navigate]);
 
   const tier = getTierByProductId(subscription.productId);
 
