@@ -18,6 +18,9 @@ export function Navbar() {
       <Link to="/analyze" className="transition-colors hover:text-foreground" onClick={() => setOpen(false)}>
         Analyze
       </Link>
+      <Link to="/blog" className="transition-colors hover:text-foreground" onClick={() => setOpen(false)}>
+        Blog
+      </Link>
       {user ? (
         <>
           <Link to="/history" className="transition-colors hover:text-foreground" onClick={() => setOpen(false)}>
