@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider, RequireAuth } from "@/lib/auth";
 import { Navbar } from "@/components/Navbar";
+import { PaymentFailedBanner } from "@/components/PaymentFailedBanner";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Analyze from "./pages/Analyze";
@@ -23,6 +24,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
+          <PaymentFailedBanner />
           <Navbar />
           <Routes>
             <Route path="/" element={<Index />} />

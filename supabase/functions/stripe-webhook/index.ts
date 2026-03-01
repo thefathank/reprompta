@@ -164,6 +164,19 @@ serve(async (req) => {
 
     logStep("Matched user", { userId: matchedUser.id });
 
+    // On subscription created or renewed, clear payment_failed flag
+    if (
+      event.type === "customer.subscription.created" ||
+      (event.type === "customer.subscription.updated" &&
+        subscription.status === "active")
+    ) {
+      await supabaseAdmin
+        .from("profiles")
+        .update({ payment_failed: false })
+        .eq("user_id", matchedUser.id);
+      logStep("Cleared payment_failed flag for active subscription");
+    }
+
     // On subscription deleted or cancelled, reset usage counters
     if (
       event.type === "customer.subscription.deleted" ||
@@ -176,6 +189,7 @@ serve(async (req) => {
           image_analyses_used: 0,
           video_analyses_used: 0,
           usage_reset_at: new Date().toISOString(),
+          payment_failed: false,
         })
         .eq("user_id", matchedUser.id);
 

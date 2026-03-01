@@ -66,6 +66,7 @@ export type Database = {
           email: string | null
           id: string
           image_analyses_used: number
+          payment_failed: boolean
           updated_at: string
           usage_reset_at: string
           user_id: string
@@ -77,6 +78,7 @@ export type Database = {
           email?: string | null
           id?: string
           image_analyses_used?: number
+          payment_failed?: boolean
           updated_at?: string
           usage_reset_at?: string
           user_id: string
@@ -88,6 +90,7 @@ export type Database = {
           email?: string | null
           id?: string
           image_analyses_used?: number
+          payment_failed?: boolean
           updated_at?: string
           usage_reset_at?: string
           user_id?: string
