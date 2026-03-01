@@ -1,81 +1,61 @@
 
 
-## Stripe Subscription Integration -- 3 Tiers
+## Current Flow vs Desired Flow
 
-### Products & Prices to Create in Stripe
-- **Basic** -- $4.99/month (10 images + 1 video/month)
-- **Pro** -- $19.00/month (unlimited images, 5 videos/month, batch, comparison, export)
+**Current:** Landing → "Start analyzing" → Auth page (must sign up/login) → Analyze page (gated by `RequireAuth`)
 
-Free tier has no Stripe product -- it's the default state (1 total analysis, no history, no video).
+**Desired:** Landing → "Start analyzing" → Analyze page (no login needed) → First analysis works free → On second attempt, show signup + payment gateway
 
-### Edge Functions to Create
+## Plan
 
-**1. `check-subscription`**
-- Looks up Stripe customer by user email, checks active subscription
-- Returns `{ subscribed, product_id, subscription_end }`
-- Used on auth state change + page load + periodic refresh
+### 1. Remove auth gate from Analyze route
+In `src/App.tsx`, unwrap `<Analyze />` from `<RequireAuth>` so anonymous users can access `/analyze`.
 
-**2. `create-checkout`**
-- Accepts `price_id` in body
-- Creates Stripe checkout session in `mode: "subscription"`
-- Returns checkout URL for redirect
+### 2. Update "Start analyzing" link on landing page
+In `src/pages/Index.tsx`, change the CTA link to always point to `/analyze` (currently goes to `/auth` for logged-out users).
 
-**3. `customer-portal`**
-- Creates Stripe billing portal session for managing/canceling subscription
-- Returns portal URL
+### 3. Track free usage via localStorage for anonymous users
+Since anonymous users have no database profile, track their usage count in `localStorage` (e.g. key `reprompta_free_uses`, increment after each successful analysis).
 
-### Auth Context Changes (`src/lib/auth.tsx`)
-- Add subscription state: `{ subscribed, productId, subscriptionEnd, isLoading }`
-- Call `check-subscription` on auth state change and on mount
-- Expose `subscription` object and a `checkSubscription()` refresh method
+### 4. Rework the Analyze page for anonymous flow
+In `src/pages/Analyze.tsx`:
+- Allow anonymous uploads — the `analyze-media` edge function doesn't require auth (it uses the Lovable AI gateway, not user tokens).
+- For file upload to storage: use a temporary approach — upload without user ID prefix, or call the edge function with an inline base64/URL approach. Since the storage bucket is public and the edge function accepts a `mediaUrl`, we can upload anonymously or skip storage for anonymous users and send the file directly.
+- After a successful analysis: increment `localStorage` counter.
+- On second attempt (counter >= 1): instead of running analysis, show a **signup + pricing dialog** that blocks further use. This dialog will have:
+  - "Create an account to keep analyzing" messaging
+  - Sign-up form (inline or link to `/auth`)
+  - Plan options (Free tier gone — show Basic and Pro)
+  - "Sign in" link for returning users
 
-### Usage Tracking
-- Add columns to `profiles` table via migration:
-  - `image_analyses_used` (int, default 0)
-  - `video_analyses_used` (int, default 0)
-  - `usage_reset_at` (timestamptz, default now())
-- The `analyze-media` edge function (or a new `track-usage` wrapper) will check and increment counters before running analysis
-- Reset counters monthly (check `usage_reset_at` vs current month)
+### 5. Update the analyze-media edge function
+Currently the edge function doesn't verify auth — it just needs `mediaUrl` and `mediaType`. No changes needed here. But the Analyze page currently requires `user` for storage upload and DB insert. For anonymous users:
+- Skip saving to `analyses` table (no user ID)
+- Skip incrementing profile usage counters
+- Skip storage upload — instead, convert the file to a data URL or use a temporary public upload path
 
-### Tier Config (frontend constant)
-```text
-FREE:  { product_id: null, images: 1 (lifetime), videos: 0, history: false, compare: false }
-BASIC: { product_id: "prod_xxx", price_id: "price_xxx", images: 10/mo, videos: 1/mo, history: true, compare: false }
-PRO:   { product_id: "prod_yyy", price_id: "price_yyy", images: Infinity, videos: 5/mo, history: true, compare: true }
-```
+### 6. Create a gateway dialog component
+A new `SignupGateway` dialog/modal shown when anonymous users hit their limit:
+- Explains the value prop
+- Inline auth form (email + password) or "Go to sign in" button
+- Pricing cards (Basic $4.99/mo, Pro $19/mo)
+- After successful signup, redirect back to `/analyze` where they can continue (now as a logged-in free user with 1 lifetime analysis already used)
 
-### Gating Logic in Analyze Page
-- Before analysis: check tier limits against usage counters
-- Show remaining quota: "3 of 10 images used this month"
-- If limit hit: show upgrade prompt instead of analyze button
-- Compare Models toggle: only visible/enabled for Pro tier
-- Video upload: disabled on Free tier
+### 7. Navbar adjustments
+Show "Analyze" link for everyone (not just logged-in users). Keep "History" only for logged-in users.
 
-### New Pricing Page (`src/pages/Pricing.tsx`)
-- 3-column layout: Free / Basic / Pro
-- Bold allowance text: **"10 images + 1 video per month"**
-- Current plan highlighted with badge
-- CTA buttons: "Get Started" (free), "Subscribe" (basic/pro)
-- Route: `/pricing`, added to navbar
+### Technical Details
 
-### History Page Gating
-- Free tier: redirect to pricing or show "upgrade to access history"
-- Basic/Pro: full access (already works)
+**Anonymous file handling:** For anonymous users, we'll read the file as a base64 data URL client-side and pass it directly to the edge function instead of uploading to storage first. The edge function already accepts image URLs — we'll add support for base64 data URIs or upload to a temporary path using the anon key (the bucket is public).
 
-### Navbar Update
-- Add "Pricing" link
-- Show current plan badge or "Upgrade" link for free users
+**localStorage key:** `reprompta_free_analyses` — integer counter, checked before each analysis attempt.
 
-### Files to Create/Modify
-- **Create**: `supabase/functions/check-subscription/index.ts`
-- **Create**: `supabase/functions/create-checkout/index.ts`
-- **Create**: `supabase/functions/customer-portal/index.ts`
-- **Create**: `src/pages/Pricing.tsx`
-- **Create**: `src/lib/subscription.ts` (tier config, types, hook)
-- **Modify**: `src/lib/auth.tsx` (add subscription state)
-- **Modify**: `src/pages/Analyze.tsx` (usage gating, quota display)
-- **Modify**: `src/pages/HistoryPage.tsx` (free tier gate)
-- **Modify**: `src/components/Navbar.tsx` (pricing link, plan badge)
-- **Modify**: `src/App.tsx` (add /pricing route)
-- **Migration**: Add usage columns to `profiles` table
+**Auth flow after gateway:** When user signs up through the gateway, `onAuthStateChange` fires, the Analyze page detects the new user, and normal gated flow resumes. Their localStorage free use carries over conceptually (they've already used their 1 free analysis).
+
+**Files to modify:**
+- `src/App.tsx` — remove RequireAuth from Analyze route
+- `src/pages/Index.tsx` — CTA always links to `/analyze`
+- `src/pages/Analyze.tsx` — major rework for anonymous flow, localStorage tracking, gateway trigger
+- `src/components/Navbar.tsx` — show Analyze link for all users
+- **New:** `src/components/SignupGateway.tsx` — the upgrade/signup modal
 
