@@ -56,10 +56,61 @@ serve(async (req) => {
     "customer.subscription.created",
     "customer.subscription.updated",
     "customer.subscription.deleted",
+    "invoice.payment_failed",
   ];
 
   if (!relevantEvents.includes(event.type)) {
     logStep("Ignoring event type", { type: event.type });
+    return new Response(JSON.stringify({ received: true }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  // Handle invoice.payment_failed separately
+  if (event.type === "invoice.payment_failed") {
+    const invoice = event.data.object as Stripe.Invoice;
+    const customerId = invoice.customer as string;
+
+    try {
+      const customer = await stripe.customers.retrieve(customerId);
+      if (customer.deleted || !("email" in customer) || !customer.email) {
+        logStep("Payment failed - customer has no email", { customerId });
+        return new Response(JSON.stringify({ received: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const supabaseAdmin = createClient(
+        Deno.env.get("SUPABASE_URL") ?? "",
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+        { auth: { persistSession: false } }
+      );
+
+      // Find the user by email
+      const { data: users } = await supabaseAdmin.auth.admin.listUsers();
+      const matchedUser = users?.users.find(
+        (u) => u.email?.toLowerCase() === customer.email!.toLowerCase()
+      );
+
+      if (matchedUser) {
+        // Store a payment_failed flag in the profile metadata so the frontend can show a warning
+        const { error: updateError } = await supabaseAdmin
+          .from("profiles")
+          .update({ payment_failed: true })
+          .eq("user_id", matchedUser.id);
+
+        if (updateError) {
+          logStep("Error setting payment_failed flag", { error: updateError.message });
+        } else {
+          logStep("Payment failed flag set", { email: customer.email, userId: matchedUser.id });
+        }
+      } else {
+        logStep("No matching user for failed payment", { email: customer.email });
+      }
+    } catch (err) {
+      logStep("Error processing payment_failed", { error: (err as Error).message });
+    }
+
     return new Response(JSON.stringify({ received: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
