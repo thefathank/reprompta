@@ -1,16 +1,16 @@
 
 
-## Plan: Reduce Prompt Library footprint with pagination
+## Plan: Include tags in copied prompt text
 
-Currently all ~30 prompts render at once in a 3-column grid, making the section very tall. The fix: **paginate the grid to show 6 prompts per page** (2 rows of 3), with simple Previous/Next controls below.
+When copying a prompt (from either the card or the detail dialog), append the tags (aspect ratios, style flags, camera specs, etc.) to the prompt text so the copied output is ready to paste into an AI tool.
 
 ### Changes
 
 **`src/components/PromptGallery.tsx`**
-- Add `page` state (starts at 0), reset to 0 whenever filters or search change
-- Slice `filtered` to show only 6 items per page: `filtered.slice(page * 6, page * 6 + 6)`
-- Render a small pagination bar below the grid with Previous/Next buttons and a "Page X of Y" label (using the existing `Pagination` UI components or simple buttons)
-- Reduce vertical padding on the section (`py-28` → `py-16`) for a tighter feel
+- Update `handleCopy` to accept the full prompt object instead of just `text`
+- Build the copied string as: `prompt.text + " " + prompt.tags.join(" ")`
+- Update both call sites (card copy button and dialog copy button) to pass the prompt object
 
-No new files or dependencies needed.
+Example copied output:
+> `A cyberpunk cityscape at dusk, neon reflections... --ar 16:9 --style raw`
 
