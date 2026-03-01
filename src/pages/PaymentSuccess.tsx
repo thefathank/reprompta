@@ -12,6 +12,7 @@ export default function PaymentSuccess() {
   const navigate = useNavigate();
   const [refreshing, setRefreshing] = useState(true);
   const [portalLoading, setPortalLoading] = useState(false);
+  const [countdown, setCountdown] = useState(5);
 
   const openPortal = async () => {
     setPortalLoading(true);
@@ -51,11 +52,16 @@ export default function PaymentSuccess() {
       toastShown.current = true;
       setRefreshing(false);
       toast({ title: "Subscription activated!", description: "Your plan has been upgraded." });
-      // Auto-redirect to analyze after 4 seconds
-      const timeout = setTimeout(() => navigate("/analyze"), 4000);
-      return () => clearTimeout(timeout);
     }
   }, [subscription.subscribed, navigate]);
+
+  // Countdown + auto-redirect after subscription confirmed
+  useEffect(() => {
+    if (!subscription.subscribed || refreshing) return;
+    if (countdown <= 0) { navigate("/analyze"); return; }
+    const timer = setTimeout(() => setCountdown((c) => c - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [subscription.subscribed, refreshing, countdown, navigate]);
 
   const tier = getTierByProductId(subscription.productId);
 
@@ -83,6 +89,9 @@ export default function PaymentSuccess() {
             <h1 className="mt-6 text-2xl font-bold tracking-tight">You're on {tier.name}!</h1>
             <p className="mt-2 text-sm text-muted-foreground">
               Your subscription is active. Start analyzing with your new limits.
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground/70">
+              Redirecting to analyzer in {countdown}s…
             </p>
             <div className="mt-8 flex gap-3">
               <button
