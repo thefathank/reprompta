@@ -47,6 +47,7 @@ serve(async (req) => {
         subscribed: true,
         product_id: "prod_U4MKifk1TpNOWD",
         subscription_end: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+        payment_failed: false,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -57,7 +58,12 @@ serve(async (req) => {
 
     if (customers.data.length === 0) {
       logStep("No Stripe customer found");
-      return new Response(JSON.stringify({ subscribed: false }), {
+      // No customer = no subscription, ensure usage is reset and payment_failed cleared
+      await supabaseClient
+        .from("profiles")
+        .update({ payment_failed: false })
+        .eq("user_id", user.id);
+      return new Response(JSON.stringify({ subscribed: false, payment_failed: false }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -65,6 +71,7 @@ serve(async (req) => {
     const customerId = customers.data[0].id;
     logStep("Found Stripe customer", { customerId });
 
+    // Check for active subscriptions
     const subscriptions = await stripe.subscriptions.list({
       customer: customerId,
       status: "active",
@@ -77,7 +84,6 @@ serve(async (req) => {
 
     if (hasActiveSub) {
       const subscription = subscriptions.data[0];
-      // Handle current_period_end as either unix timestamp (number) or date string
       const periodEnd = subscription.current_period_end;
       if (typeof periodEnd === "number") {
         subscriptionEnd = new Date(periodEnd * 1000).toISOString();
@@ -90,10 +96,47 @@ serve(async (req) => {
       logStep("No active subscription");
     }
 
+    // Check for past_due subscriptions (indicates payment failure)
+    const pastDueSubs = await stripe.subscriptions.list({
+      customer: customerId,
+      status: "past_due",
+      limit: 1,
+    });
+    const paymentFailed = pastDueSubs.data.length > 0;
+    logStep("Payment status", { paymentFailed });
+
+    // Sync payment_failed flag to profile
+    await supabaseClient
+      .from("profiles")
+      .update({ payment_failed: paymentFailed })
+      .eq("user_id", user.id);
+
+    // If no active subscription, reset usage counters
+    if (!hasActiveSub) {
+      const { data: profile } = await supabaseClient
+        .from("profiles")
+        .select("image_analyses_used, video_analyses_used")
+        .eq("user_id", user.id)
+        .single();
+
+      if (profile && (profile.image_analyses_used > 0 || profile.video_analyses_used > 0)) {
+        await supabaseClient
+          .from("profiles")
+          .update({
+            image_analyses_used: 0,
+            video_analyses_used: 0,
+            usage_reset_at: new Date().toISOString(),
+          })
+          .eq("user_id", user.id);
+        logStep("Usage counters reset for unsubscribed user");
+      }
+    }
+
     return new Response(JSON.stringify({
       subscribed: hasActiveSub,
       product_id: productId,
       subscription_end: subscriptionEnd,
+      payment_failed: paymentFailed,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
