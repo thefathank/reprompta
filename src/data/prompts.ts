@@ -29,4 +29,24 @@ export const prompts = [
     model: "Nano Banana",
     tags: ["1:1", "stylized"],
   },
+  {
+    text: "A single continuous take following a red balloon as it escapes a child's hand at a bustling Parisian flea market, drifts over rooftops of the Marais, and rises past the Eiffel Tower into a cotton-candy sunset. The camera spirals around the balloon as pigeons scatter and the city shrinks below. Golden hour light paints every zinc rooftop in amber and rose.",
+    model: "Sora",
+    tags: ["1080p", "long-take", "60fps"],
+  },
+  {
+    text: "Hyperrealistic macro photograph of morning dew on a spider web stretched between two rusted iron fence posts. Each droplet acts as a tiny lens refracting the blurred garden behind it. A single ladybug clings to a silk thread, its shell glistening with moisture. Shot on medium format digital with extreme shallow depth of field, the bokeh dissolves into circles of soft emerald and gold.",
+    model: "Flux 1.1 Pro",
+    tags: ["--ar 4:5", "--raw"],
+  },
+  {
+    text: "Retro travel poster for a fictional moon colony called 'Selene City.' Art deco typography announces 'Visit Selene — Where Earth Rises Every Morning.' A suited astronaut lounges in a mid-century modern chair on a lunar balcony, sipping coffee while gazing at a massive blue Earth hanging in a star-filled black sky. Muted pastels with bold geometric framing, grain texture, and vintage print registration marks.",
+    model: "Ideogram 2.0",
+    tags: ["poster", "typography", "1:1"],
+  },
+  {
+    text: "Photorealistic aerial view of a bioluminescent bay at midnight, shot from a low-altitude drone. The water glows electric blue wherever waves break against the rocky shoreline. A lone kayaker leaves a trail of shimmering turquoise light behind their paddle strokes. The Milky Way stretches overhead, its reflection merging with the glowing plankton below, creating the illusion that the kayaker floats through stars.",
+    model: "Firefly 3",
+    tags: ["16:9", "photorealistic"],
+  },
 ];
