@@ -24,7 +24,7 @@ const PLANS = [
     price: "$4.99",
     period: "/mo",
     features: ["10 image analyses/mo", "1 video analysis/mo", "Saved history"],
-    priceId: "price_1T5ZxnRl01KtqeKQno6cWnhM",
+    priceId: "price_1T6Db6Dab7guoXOTw2qzpWhg",
   },
   {
     name: "Pro",
@@ -36,7 +36,7 @@ const PLANS = [
       "Model comparison",
       "Batch upload & bulk export",
     ],
-    priceId: "price_1T5a0fRl01KtqeKQGUiGSBQm",
+    priceId: "price_1T6DbSDab7guoXOTqb7hBGFM",
     highlight: true,
   },
 ];

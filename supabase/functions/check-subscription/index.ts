@@ -45,7 +45,7 @@ serve(async (req) => {
       logStep("Dev override: granting Pro access", { email: user.email });
       return new Response(JSON.stringify({
         subscribed: true,
-        product_id: "prod_U3hPjfcoCqFHnj",
+        product_id: "prod_U4MKifk1TpNOWD",
         subscription_end: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
