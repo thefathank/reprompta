@@ -56,7 +56,7 @@ export function SignupGateway({ open, onOpenChange }: SignupGatewayProps) {
         const { error } = await supabase.auth.signUp({
           email,
           password,
-          options: { emailRedirectTo: window.location.origin },
+          options: { emailRedirectTo: `${window.location.origin}/pricing?welcome=1` },
         });
         if (error) throw error;
         toast({
@@ -67,6 +67,11 @@ export function SignupGateway({ open, onOpenChange }: SignupGatewayProps) {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         onOpenChange(false);
+        toast({
+          title: "Welcome back! 🎉",
+          description: "Pick a plan to start analyzing.",
+        });
+        navigate("/pricing");
       }
     } catch (err: any) {
       toast({ title: "Error", description: err.message, variant: "destructive" });
