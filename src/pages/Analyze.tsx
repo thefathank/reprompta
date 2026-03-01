@@ -168,14 +168,15 @@ export default function Analyze() {
 
   // --- Upload helpers ---
 
-  const uploadFileForUser = async (): Promise<{ publicUrl: string; mediaType: string } | null> => {
+  const uploadFileForUser = async (): Promise<{ signedUrl: string; filePath: string; mediaType: string } | null> => {
     if (!file || !user) return null;
     const ext = file.name.split(".").pop();
     const filePath = `${user.id}/${Date.now()}.${ext}`;
     const { error: uploadError } = await supabase.storage.from("media-uploads").upload(filePath, file);
     if (uploadError) throw uploadError;
-    const { data: { publicUrl } } = supabase.storage.from("media-uploads").getPublicUrl(filePath);
-    return { publicUrl, mediaType: file.type.startsWith("image") ? "image" : "video" };
+    const { data: signedData, error: signedError } = await supabase.storage.from("media-uploads").createSignedUrl(filePath, 3600);
+    if (signedError || !signedData) throw signedError || new Error("Failed to create signed URL");
+    return { signedUrl: signedData.signedUrl, filePath, mediaType: file.type.startsWith("image") ? "image" : "video" };
   };
 
   const getMediaForAnon = async (): Promise<{ mediaUrl: string; mediaType: string }> => {
@@ -216,7 +217,7 @@ export default function Analyze() {
       } else {
         const upload = await uploadFileForUser();
         if (!upload) return;
-        mediaUrl = upload.publicUrl;
+        mediaUrl = upload.signedUrl;
         mediaType = upload.mediaType;
       }
 
@@ -226,11 +227,13 @@ export default function Analyze() {
       if (fnError) throw fnError;
       const analysis = fnData as AnalysisData;
 
-      // Save for logged-in users only
+      // Save for logged-in users only (store file path, not URL)
       if (user) {
+        const ext = file.name.split(".").pop();
+        const storedPath = `${user.id}/${Date.now()}.${ext}`;
         await supabase.from("analyses").insert([{
           user_id: user.id,
-          media_url: mediaUrl,
+          media_url: mediaUrl.startsWith("data:") ? mediaUrl : storedPath,
           media_type: mediaType,
           file_name: file.name,
           recovered_prompt: analysis.recovered_prompt,
@@ -240,7 +243,7 @@ export default function Analyze() {
           copy_ready_prompts: analysis.copy_ready_prompts as any,
           full_breakdown: analysis as any,
         }]);
-        await incrementUsage(mediaType);
+        await fetchUsage(); // Refresh usage from server (incremented server-side)
       } else {
         incrementAnonUsage();
       }
@@ -271,7 +274,7 @@ export default function Analyze() {
         const start = performance.now();
         try {
           const { data: fnData, error: fnError } = await supabase.functions.invoke("analyze-media", {
-            body: { mediaUrl: upload.publicUrl, mediaType: upload.mediaType, model: m.model },
+            body: { mediaUrl: upload.signedUrl, mediaType: upload.mediaType, model: m.model },
           });
           const durationMs = performance.now() - start;
           if (fnError) throw fnError;
@@ -287,7 +290,7 @@ export default function Analyze() {
       });
 
       await Promise.allSettled(promises);
-      await incrementUsage(upload.mediaType);
+      await fetchUsage(); // Refresh usage from server (incremented server-side)
     } catch (err: any) {
       toast({ title: "Upload failed", description: err.message, variant: "destructive" });
     } finally {

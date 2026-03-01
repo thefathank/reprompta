@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { Search, Trash2, Film, Lock, Sparkles } from "lucide-react";
+import { Search, Trash2, Film, Lock, Sparkles, ImageIcon } from "lucide-react";
 import { AnalysisResult } from "@/components/AnalysisResult";
 import { motion } from "framer-motion";
 import { getTierByProductId } from "@/lib/subscription";
@@ -29,11 +29,25 @@ interface AnalysisRow {
   created_at: string;
 }
 
+/** Extract storage path from various media_url formats */
+function extractStoragePath(mediaUrl: string): string | null {
+  if (mediaUrl.startsWith("data:")) return null;
+  if (!mediaUrl.startsWith("http")) return mediaUrl; // already a path
+  const publicMarker = "/object/public/media-uploads/";
+  const idx = mediaUrl.indexOf(publicMarker);
+  if (idx >= 0) return mediaUrl.substring(idx + publicMarker.length);
+  const signedMarker = "/object/sign/media-uploads/";
+  const sidx = mediaUrl.indexOf(signedMarker);
+  if (sidx >= 0) return mediaUrl.substring(sidx + signedMarker.length).split("?")[0];
+  return null;
+}
+
 export default function HistoryPage() {
   const { user, subscription } = useAuth();
   const navigate = useNavigate();
   const tier = getTierByProductId(subscription.productId);
   const [analyses, setAnalyses] = useState<AnalysisRow[]>([]);
+  const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -49,7 +63,22 @@ export default function HistoryPage() {
     if (error) {
       toast({ title: "Error loading history", description: error.message, variant: "destructive" });
     } else {
-      setAnalyses((data as any[]) || []);
+      const rows = (data as any[]) || [];
+      setAnalyses(rows);
+      // Generate signed URLs for image thumbnails
+      const urls: Record<string, string> = {};
+      await Promise.all(
+        rows.map(async (a) => {
+          if (a.media_type !== "image") return;
+          const path = extractStoragePath(a.media_url);
+          if (!path) return;
+          const { data: signedData } = await supabase.storage
+            .from("media-uploads")
+            .createSignedUrl(path, 3600);
+          if (signedData) urls[a.id] = signedData.signedUrl;
+        })
+      );
+      setSignedUrls(urls);
     }
     setLoading(false);
   };
@@ -151,8 +180,10 @@ export default function HistoryPage() {
                     className="flex w-full items-center gap-4 py-4 text-left transition-colors hover:bg-secondary/30"
                   >
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded bg-secondary">
-                      {a.media_type === "image" ? (
-                        <img src={a.media_url} alt="" className="h-full w-full object-cover" />
+                      {a.media_type === "image" && signedUrls[a.id] ? (
+                        <img src={signedUrls[a.id]} alt="" className="h-full w-full object-cover" />
+                      ) : a.media_type === "image" ? (
+                        <ImageIcon className="h-4 w-4 text-muted-foreground" />
                       ) : (
                         <Film className="h-4 w-4 text-muted-foreground" />
                       )}

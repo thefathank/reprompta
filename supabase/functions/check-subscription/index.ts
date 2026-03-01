@@ -2,10 +2,15 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+function getCorsHeaders(req: Request) {
+  const origin = req.headers.get("origin") || "";
+  const allowed =
+    origin.endsWith(".lovable.app") || origin.startsWith("http://localhost:");
+  return {
+    "Access-Control-Allow-Origin": allowed ? origin : "https://reprompta.lovable.app",
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  };
+}
 
 const logStep = (step: string, details?: any) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
@@ -13,6 +18,8 @@ const logStep = (step: string, details?: any) => {
 };
 
 serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -58,7 +65,6 @@ serve(async (req) => {
 
     if (customers.data.length === 0) {
       logStep("No Stripe customer found");
-      // No customer = no subscription, ensure usage is reset and payment_failed cleared
       await supabaseClient
         .from("profiles")
         .update({ payment_failed: false })
@@ -71,7 +77,6 @@ serve(async (req) => {
     const customerId = customers.data[0].id;
     logStep("Found Stripe customer", { customerId });
 
-    // Check for active subscriptions
     const subscriptions = await stripe.subscriptions.list({
       customer: customerId,
       status: "active",
@@ -96,7 +101,6 @@ serve(async (req) => {
       logStep("No active subscription");
     }
 
-    // Check for past_due subscriptions (indicates payment failure)
     const pastDueSubs = await stripe.subscriptions.list({
       customer: customerId,
       status: "past_due",
@@ -105,13 +109,11 @@ serve(async (req) => {
     const paymentFailed = pastDueSubs.data.length > 0;
     logStep("Payment status", { paymentFailed });
 
-    // Sync payment_failed flag to profile
     await supabaseClient
       .from("profiles")
       .update({ payment_failed: paymentFailed })
       .eq("user_id", user.id);
 
-    // If no active subscription, reset usage counters
     if (!hasActiveSub) {
       const { data: profile } = await supabaseClient
         .from("profiles")
