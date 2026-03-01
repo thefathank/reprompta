@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, X, Copy, Check, Lightbulb } from "lucide-react";
+import { Search, X, Copy, Check, Lightbulb, ChevronLeft, ChevronRight } from "lucide-react";
 import { prompts, modelInfo } from "@/data/prompts";
 import { HoverCard, HoverCardTrigger, HoverCardContent } from "@/components/ui/hover-card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -16,6 +16,8 @@ export default function PromptGallery() {
   const [activeTechnique, setActiveTechnique] = useState<string | null>(null);
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
   const [selectedPrompt, setSelectedPrompt] = useState<number | null>(null);
+  const [page, setPage] = useState(0);
+  const PAGE_SIZE = 6;
 
   const handleCopy = useCallback((text: string, idx: number) => {
     navigator.clipboard.writeText(text);
@@ -40,6 +42,17 @@ export default function PromptGallery() {
     });
   }, [search, activeModel, activeTag, activeTechnique]);
 
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const paged = filtered.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE);
+
+  // Reset page when filters change
+  const prevFiltersRef = `${search}|${activeModel}|${activeTag}|${activeTechnique}`;
+  const [prevFilters, setPrevFilters] = useState(prevFiltersRef);
+  if (prevFiltersRef !== prevFilters) {
+    setPrevFilters(prevFiltersRef);
+    setPage(0);
+  }
+
   const clearFilters = () => {
     setSearch("");
     setActiveModel(null);
@@ -50,7 +63,7 @@ export default function PromptGallery() {
   const hasFilters = search || activeModel || activeTag || activeTechnique;
 
   return (
-    <section className="border-t border-border px-6 py-28 lg:px-16">
+    <section className="border-t border-border px-6 py-16 lg:px-16">
       <div className="w-full">
         <p className="mb-4 font-mono text-xs text-muted-foreground">04</p>
         <h2 className="mb-3 text-lg font-semibold">Prompt library</h2>
@@ -144,23 +157,25 @@ export default function PromptGallery() {
         {/* Prompt grid */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <AnimatePresence mode="popLayout">
-            {filtered.map((prompt, i) => (
+            {paged.map((prompt, i) => {
+              const globalIdx = page * PAGE_SIZE + i;
+              return (
               <motion.div
-                key={prompt.model + i}
+                key={prompt.model + globalIdx}
                 layout
                 initial={{ opacity: 0, scale: 0.96 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.96 }}
                 transition={{ duration: 0.25 }}
                 className="surface-glass rounded-xl border border-border/40 p-5 group relative cursor-pointer"
-                onClick={() => setSelectedPrompt(i)}
+                onClick={() => setSelectedPrompt(globalIdx)}
               >
                 <button
-                  onClick={(e) => { e.stopPropagation(); handleCopy(prompt.text, i); }}
+                  onClick={(e) => { e.stopPropagation(); handleCopy(prompt.text, globalIdx); }}
                   className="absolute right-3 top-3 rounded-md bg-secondary/80 p-1.5 text-muted-foreground opacity-0 transition-all hover:bg-secondary hover:text-foreground group-hover:opacity-100"
                   aria-label="Copy prompt"
                 >
-                  {copiedIdx === i ? <Check className="h-3.5 w-3.5 text-accent" /> : <Copy className="h-3.5 w-3.5" />}
+                  {copiedIdx === globalIdx ? <Check className="h-3.5 w-3.5 text-accent" /> : <Copy className="h-3.5 w-3.5" />}
                 </button>
                 <p className="text-sm leading-relaxed text-foreground line-clamp-4 pr-8">
                   {prompt.text}
@@ -181,9 +196,33 @@ export default function PromptGallery() {
                   ))}
                 </div>
               </motion.div>
-            ))}
+              );
+            })}
           </AnimatePresence>
         </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="mt-6 flex items-center justify-center gap-3">
+            <button
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
+              disabled={page === 0}
+              className="inline-flex items-center gap-1 rounded-md bg-secondary px-3 py-1.5 text-xs font-medium text-secondary-foreground transition-colors hover:bg-secondary/80 disabled:opacity-40 disabled:pointer-events-none"
+            >
+              <ChevronLeft className="h-3.5 w-3.5" /> Previous
+            </button>
+            <span className="text-xs text-muted-foreground">
+              Page {page + 1} of {totalPages}
+            </span>
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+              disabled={page >= totalPages - 1}
+              className="inline-flex items-center gap-1 rounded-md bg-secondary px-3 py-1.5 text-xs font-medium text-secondary-foreground transition-colors hover:bg-secondary/80 disabled:opacity-40 disabled:pointer-events-none"
+            >
+              Next <ChevronRight className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        )}
 
         {filtered.length === 0 && (
           <p className="mt-8 text-center text-sm text-muted-foreground">
