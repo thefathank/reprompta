@@ -44,7 +44,7 @@ export default function PromptGallery() {
 
   return (
     <section className="border-t border-border px-6 py-28 lg:px-16">
-      <div className="max-w-5xl">
+      <div className="w-full">
         <p className="mb-4 font-mono text-xs text-muted-foreground">04</p>
         <h2 className="mb-3 text-lg font-semibold">Prompt library</h2>
         <p className="mb-10 max-w-md text-sm leading-relaxed text-muted-foreground">
@@ -115,7 +115,7 @@ export default function PromptGallery() {
         )}
 
         {/* Prompt grid */}
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <AnimatePresence mode="popLayout">
             {filtered.map((prompt, i) => (
               <motion.div
