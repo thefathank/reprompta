@@ -19,4 +19,14 @@ export const prompts = [
     model: "Runway Gen-3",
     tags: ["16:9", "cinematic"],
   },
+  {
+    text: "A slow-motion tracking shot following a paper lantern as it drifts upward from a crowded night market in Chiang Mai. The camera tilts to reveal hundreds more lanterns rising into a star-filled sky, their warm amber glow reflected in the Ping River below. Street vendors pause to watch, steam curling from their stalls. The ambient soundscape blends distant Thai folk music with the crackle of flame and murmur of the crowd.",
+    model: "Veo 3",
+    tags: ["1080p", "slow-mo", "audio"],
+  },
+  {
+    text: "A whimsical banana-shaped submarine exploring a coral reef made entirely of candy. Gummy fish swim past peppermint coral formations while a jellyfish made of translucent fruit leather pulses with soft pastel light. The submarine's porthole reveals a tiny monkey captain adjusting oversized brass goggles. Everything is rendered in a hyper-detailed claymation style with visible fingerprint textures on each element.",
+    model: "Nano Banana",
+    tags: ["1:1", "stylized"],
+  },
 ];
