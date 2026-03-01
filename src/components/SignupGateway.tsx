@@ -88,7 +88,7 @@ export function SignupGateway({ open, onOpenChange }: SignupGatewayProps) {
 
     try {
       const { data, error } = await supabase.functions.invoke("create-checkout", {
-        body: { priceId, returnUrl: `${window.location.origin}/analyze?checkout=success` },
+        body: { price_id: priceId },
       });
       if (error) throw error;
       if (data?.url) window.location.href = data.url;
