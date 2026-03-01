@@ -22,6 +22,7 @@ const defaultSubscription: SubscriptionState = {
   productId: null,
   subscriptionEnd: null,
   isLoading: true,
+  paymentFailed: false,
 };
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -44,7 +45,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         productId: data.product_id ?? null,
         subscriptionEnd: data.subscription_end ?? null,
         isLoading: false,
+        paymentFailed: false,
       });
+
+      // Check profile for payment_failed flag
+      if (currentSession?.user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("payment_failed")
+          .eq("user_id", currentSession.user.id)
+          .single();
+        if (profile?.payment_failed) {
+          setSubscription((prev) => ({ ...prev, paymentFailed: true }));
+        }
+      }
     } catch {
       setSubscription((prev) => ({ ...prev, isLoading: false }));
     }

@@ -67,4 +67,5 @@ export interface SubscriptionState {
   productId: string | null;
   subscriptionEnd: string | null;
   isLoading: boolean;
+  paymentFailed: boolean;
 }
