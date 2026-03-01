@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -6,13 +7,35 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// Allowed models whitelist
+const ALLOWED_MODELS = new Set([
+  "google/gemini-2.5-flash",
+  "google/gemini-2.5-pro",
+  "google/gemini-3-flash-preview",
+  "google/gemini-3-pro-preview",
+]);
+
+// Max data URI size: 20MB
+const MAX_DATA_URI_SIZE = 20 * 1024 * 1024;
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { mediaUrl, mediaType, model } = await req.json();
+    // --- Parse & validate input ---
+    let body: any;
+    try {
+      body = await req.json();
+    } catch {
+      return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { mediaUrl, mediaType, model } = body;
 
     if (!mediaUrl || !mediaType) {
       return new Response(JSON.stringify({ error: "mediaUrl and mediaType are required" }), {
@@ -21,6 +44,96 @@ serve(async (req) => {
       });
     }
 
+    // Validate mediaType
+    if (mediaType !== "image" && mediaType !== "video") {
+      return new Response(JSON.stringify({ error: "mediaType must be 'image' or 'video'" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Validate model against whitelist
+    const selectedModel = model || "google/gemini-2.5-flash";
+    if (!ALLOWED_MODELS.has(selectedModel)) {
+      return new Response(JSON.stringify({ error: "Invalid model specified" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Validate mediaUrl format
+    const isDataUri = mediaUrl.startsWith("data:");
+    if (isDataUri) {
+      // Validate data URI format and size
+      if (!/^data:(image|video)\/[\w.+-]+;base64,/.test(mediaUrl)) {
+        return new Response(JSON.stringify({ error: "Invalid data URI format" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (mediaUrl.length > MAX_DATA_URI_SIZE) {
+        return new Response(JSON.stringify({ error: "Media too large. Maximum 20MB." }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    } else {
+      // Validate URL format - must be HTTPS
+      try {
+        const parsed = new URL(mediaUrl);
+        if (parsed.protocol !== "https:") {
+          return new Response(JSON.stringify({ error: "mediaUrl must use HTTPS" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      } catch {
+        return new Response(JSON.stringify({ error: "Invalid mediaUrl format" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
+    // --- Authentication ---
+    const authHeader = req.headers.get("Authorization");
+    let userId: string | null = null;
+    let isAuthenticated = false;
+
+    if (authHeader?.startsWith("Bearer ")) {
+      const supabase = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_ANON_KEY")!,
+        { global: { headers: { Authorization: authHeader } } }
+      );
+
+      const token = authHeader.replace("Bearer ", "");
+      const { data, error } = await supabase.auth.getClaims(token);
+
+      if (!error && data?.claims?.sub) {
+        userId = data.claims.sub;
+        isAuthenticated = true;
+      }
+    }
+
+    // For unauthenticated requests: only allow data URIs (client-side uploads)
+    // and restrict to default model only
+    if (!isAuthenticated) {
+      if (!isDataUri) {
+        return new Response(JSON.stringify({ error: "Authentication required for URL-based analysis" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (model && model !== "google/gemini-2.5-flash") {
+        return new Response(JSON.stringify({ error: "Authentication required for model selection" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
+    // --- AI Analysis ---
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
@@ -49,27 +162,16 @@ Be thorough and specific. Analyze composition, lighting, style, color palette, s
       },
     ];
 
-    // Support both URLs and base64 data URIs
-    const isDataUri = mediaUrl.startsWith("data:");
-
     if (mediaType === "image") {
       userContent.push({
         type: "image_url",
         image_url: { url: mediaUrl },
       });
     } else if (mediaType === "video") {
-      if (isDataUri) {
-        // For data URIs, still pass as video_url — the gateway handles it
-        userContent.push({
-          type: "video_url",
-          video_url: { url: mediaUrl },
-        });
-      } else {
-        userContent.push({
-          type: "video_url",
-          video_url: { url: mediaUrl },
-        });
-      }
+      userContent.push({
+        type: "video_url",
+        video_url: { url: mediaUrl },
+      });
     }
 
     const tools = [
@@ -112,8 +214,6 @@ Be thorough and specific. Analyze composition, lighting, style, color palette, s
         },
       },
     ];
-
-    const selectedModel = model || "google/gemini-2.5-flash"; // default model
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
