@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Search, X, Copy, Check } from "lucide-react";
 import { prompts, modelInfo } from "@/data/prompts";
 import { HoverCard, HoverCardTrigger, HoverCardContent } from "@/components/ui/hover-card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 const allModels = [...new Set(prompts.map((p) => p.model))];
 const allTags = [...new Set(prompts.flatMap((p) => p.tags))];
@@ -12,6 +13,7 @@ export default function PromptGallery() {
   const [activeModel, setActiveModel] = useState<string | null>(null);
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
+  const [selectedPrompt, setSelectedPrompt] = useState<number | null>(null);
 
   const handleCopy = useCallback((text: string, idx: number) => {
     navigator.clipboard.writeText(text);
@@ -125,10 +127,11 @@ export default function PromptGallery() {
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.96 }}
                 transition={{ duration: 0.25 }}
-                className="surface-glass rounded-xl border border-border/40 p-5 group relative"
+                className="surface-glass rounded-xl border border-border/40 p-5 group relative cursor-pointer"
+                onClick={() => setSelectedPrompt(i)}
               >
                 <button
-                  onClick={() => handleCopy(prompt.text, i)}
+                  onClick={(e) => { e.stopPropagation(); handleCopy(prompt.text, i); }}
                   className="absolute right-3 top-3 rounded-md bg-secondary/80 p-1.5 text-muted-foreground opacity-0 transition-all hover:bg-secondary hover:text-foreground group-hover:opacity-100"
                   aria-label="Copy prompt"
                 >
@@ -138,6 +141,46 @@ export default function PromptGallery() {
                   {prompt.text}
                 </p>
                 <div className="mt-4 flex flex-wrap gap-2">
+                  <span className="rounded bg-accent/15 px-2.5 py-1 text-xs font-medium text-accent">
+                    {prompt.model}
+                  </span>
+                  {prompt.tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="rounded bg-secondary px-2.5 py-1 text-xs text-secondary-foreground"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </div>
+
+        {filtered.length === 0 && (
+          <p className="mt-8 text-center text-sm text-muted-foreground">
+            No prompts match your filters.
+          </p>
+        )}
+      </div>
+
+      {/* Full prompt dialog */}
+      <Dialog open={selectedPrompt !== null} onOpenChange={(open) => !open && setSelectedPrompt(null)}>
+        <DialogContent className="max-w-lg">
+          {selectedPrompt !== null && (() => {
+            const prompt = filtered[selectedPrompt];
+            if (!prompt) return null;
+            return (
+              <>
+                <DialogHeader>
+                  <DialogTitle className="text-base font-semibold">Prompt details</DialogTitle>
+                  <DialogDescription className="sr-only">Full prompt text and metadata</DialogDescription>
+                </DialogHeader>
+                <p className="text-sm leading-relaxed text-foreground whitespace-pre-wrap">
+                  {prompt.text}
+                </p>
+                <div className="flex flex-wrap items-center gap-2">
                   <HoverCard openDelay={200} closeDelay={100}>
                     <HoverCardTrigger asChild>
                       <span className="cursor-help rounded bg-accent/15 px-2.5 py-1 text-xs font-medium text-accent">
@@ -164,25 +207,23 @@ export default function PromptGallery() {
                     )}
                   </HoverCard>
                   {prompt.tags.map((tag) => (
-                    <span
-                      key={tag}
-                      className="rounded bg-secondary px-2.5 py-1 text-xs text-secondary-foreground"
-                    >
+                    <span key={tag} className="rounded bg-secondary px-2.5 py-1 text-xs text-secondary-foreground">
                       {tag}
                     </span>
                   ))}
+                  <button
+                    onClick={() => handleCopy(prompt.text, selectedPrompt)}
+                    className="ml-auto inline-flex items-center gap-1.5 rounded-md bg-secondary px-3 py-1.5 text-xs font-medium text-secondary-foreground hover:bg-secondary/80 transition-colors"
+                  >
+                    {copiedIdx === selectedPrompt ? <Check className="h-3.5 w-3.5 text-accent" /> : <Copy className="h-3.5 w-3.5" />}
+                    {copiedIdx === selectedPrompt ? "Copied" : "Copy"}
+                  </button>
                 </div>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </div>
-
-        {filtered.length === 0 && (
-          <p className="mt-8 text-center text-sm text-muted-foreground">
-            No prompts match your filters.
-          </p>
-        )}
-      </div>
+              </>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }
