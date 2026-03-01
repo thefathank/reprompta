@@ -1,3 +1,16 @@
+export const modelInfo: Record<string, { description: string; url: string | null }> = {
+  "Midjourney v6": { description: "Scene composition and stylistic control with powerful aesthetic tuning.", url: "https://www.midjourney.com" },
+  "DALL·E 3": { description: "Photorealism with strong text understanding and prompt adherence.", url: "https://openai.com/dall-e-3" },
+  "Stable Diffusion XL": { description: "Open-source model with fine-grained parameter control.", url: "https://stability.ai" },
+  "Runway Gen-3": { description: "Cinematic video generation with camera and motion control.", url: "https://runwayml.com" },
+  "Veo 3": { description: "Video generation with audio, slow-motion, and cinematic depth.", url: "https://deepmind.google/technologies/veo/" },
+  "Nano Banana": { description: "Stylized and whimsical image generation. Community model.", url: null },
+  "Sora": { description: "Long-take cinematic video with smooth camera movement.", url: "https://openai.com/sora" },
+  "Flux 1.1 Pro": { description: "High-fidelity photography and extreme macro detail.", url: "https://blackforestlabs.ai" },
+  "Ideogram 2.0": { description: "Typography-heavy design, posters, and text rendering.", url: "https://ideogram.ai" },
+  "Firefly 3": { description: "Photorealistic composites with commercial-safe output.", url: "https://www.adobe.com/products/firefly.html" },
+};
+
 export const prompts = [
   {
     text: "A cyberpunk cityscape at dusk, neon reflections shimmering on wet pavement, volumetric fog rolling through narrow alleyways between towering megastructures. Holographic advertisements flicker in Japanese and Korean script. A lone figure in a translucent raincoat walks toward camera, backlit by magenta and cyan light spill from storefronts.",
