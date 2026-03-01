@@ -19,8 +19,9 @@ export default function PromptGallery() {
   const [page, setPage] = useState(0);
   const PAGE_SIZE = 6;
 
-  const handleCopy = useCallback((text: string, idx: number) => {
-    navigator.clipboard.writeText(text);
+  const handleCopy = useCallback((prompt: { text: string; tags: string[] }, idx: number) => {
+    const copyText = [prompt.text, ...prompt.tags].join(" ");
+    navigator.clipboard.writeText(copyText);
     setCopiedIdx(idx);
     setTimeout(() => setCopiedIdx(null), 1500);
   }, []);
@@ -171,7 +172,7 @@ export default function PromptGallery() {
                 onClick={() => setSelectedPrompt(globalIdx)}
               >
                 <button
-                  onClick={(e) => { e.stopPropagation(); handleCopy(prompt.text, globalIdx); }}
+                  onClick={(e) => { e.stopPropagation(); handleCopy(prompt, globalIdx); }}
                   className="absolute right-3 top-3 rounded-md bg-secondary/80 p-1.5 text-muted-foreground opacity-0 transition-all hover:bg-secondary hover:text-foreground group-hover:opacity-100"
                   aria-label="Copy prompt"
                 >
@@ -283,7 +284,7 @@ export default function PromptGallery() {
                     </span>
                   ))}
                   <button
-                    onClick={() => handleCopy(prompt.text, selectedPrompt)}
+                    onClick={() => handleCopy(prompt, selectedPrompt)}
                     className="ml-auto inline-flex items-center gap-1.5 rounded-md bg-secondary px-3 py-1.5 text-xs font-medium text-secondary-foreground hover:bg-secondary/80 transition-colors"
                   >
                     {copiedIdx === selectedPrompt ? <Check className="h-3.5 w-3.5 text-accent" /> : <Copy className="h-3.5 w-3.5" />}
