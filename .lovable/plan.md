@@ -1,22 +1,18 @@
 
 
-## Plan: Update Live Stripe Product & Price IDs
+Yes, a private blog with articles about AI prompting would significantly help with SEO for Reprompta. Here's why:
 
-### What
-Replace all test-mode Stripe product and price IDs with the new live-mode IDs across the codebase.
+**How it helps:**
+- **Keyword targeting** — Articles about "how to write AI prompts," "reverse engineer AI images," "Midjourney prompt tips," etc. would attract organic search traffic from people already interested in your core product.
+- **Internal linking** — Blog posts can link to your `/analyze` and `/pricing` pages, passing authority and guiding readers toward conversion.
+- **Topical authority** — Google rewards sites that demonstrate deep expertise in a niche. A blog focused on AI prompting establishes Reprompta as an authority.
+- **Long-tail traffic** — Each article captures specific search queries (e.g., "how to recover prompts from AI images") that your landing page alone can't rank for.
+- **Fresh content signals** — Regular publishing signals to search engines that the site is active and maintained.
 
-### Changes
+**Key considerations:**
+- The blog should be **public**, not private — search engines can't index content behind authentication. If you mean "owned/managed privately" but publicly accessible, that's ideal.
+- Articles should target real search queries with reasonable volume (use tools like Google Keyword Planner or Ubersuggest to validate).
+- Include structured data (article schema) for rich search results.
 
-**1. `src/lib/subscription.ts`** — Update `TIERS` config
-- Basic: `product_id` → `prod_U4MJwRZbJp7Nid`, `price_id` → `price_1T6Db6Dab7guoXOTw2qzpWhg`
-- Pro: `product_id` → `prod_U4MKifk1TpNOWD`, `price_id` → `price_1T6DbSDab7guoXOTqb7hBGFM`
-
-**2. `src/components/SignupGateway.tsx`** — Update `PLANS` array
-- Basic `priceId` → `price_1T6Db6Dab7guoXOTw2qzpWhg`
-- Pro `priceId` → `price_1T6DbSDab7guoXOTqb7hBGFM`
-
-**3. `supabase/functions/check-subscription/index.ts`** — Update dev override
-- Dev override Pro product_id → `prod_U4MKifk1TpNOWD`
-
-No backend or database changes required.
+**Would you like me to build a public blog section for Reprompta?** I could add a `/blog` route with article pages, SEO metadata, and structured data markup. The content could be stored in your backend for easy management.
 
