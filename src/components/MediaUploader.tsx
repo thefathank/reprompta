@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 import { Upload, X, Image, Film, Loader2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { compressImageIfNeeded } from "@/lib/compress";
 
 interface MediaUploaderProps {
   onFileSelect: (file: File) => void;
@@ -37,6 +38,7 @@ function checkVideoDuration(file: File): Promise<number> {
 export function MediaUploader({ onFileSelect, disabled, acceptVideo = true }: MediaUploaderProps) {
   const [dragOver, setDragOver] = useState(false);
   const [checking, setChecking] = useState(false);
+  const [checkingLabel, setCheckingLabel] = useState("Checking video…");
   const [preview, setPreview] = useState<{ url: string; type: "image" | "video"; name: string } | null>(null);
 
   const handleFile = useCallback(
@@ -58,6 +60,7 @@ export function MediaUploader({ onFileSelect, disabled, acceptVideo = true }: Me
       }
       const type = file.type.startsWith("image") ? "image" : "video";
       if (type === "video") {
+        setCheckingLabel("Checking video…");
         setChecking(true);
         try {
           const duration = await checkVideoDuration(file);
@@ -76,8 +79,18 @@ export function MediaUploader({ onFileSelect, disabled, acceptVideo = true }: Me
           setChecking(false);
         }
       }
-      setPreview({ url: URL.createObjectURL(file), type, name: file.name });
-      onFileSelect(file);
+      let finalFile: File = file;
+      if (type === "image") {
+        setCheckingLabel("Optimizing image…");
+        setChecking(true);
+        try {
+          finalFile = await compressImageIfNeeded(file);
+        } finally {
+          setChecking(false);
+        }
+      }
+      setPreview({ url: URL.createObjectURL(finalFile), type, name: finalFile.name });
+      onFileSelect(finalFile);
     },
     [onFileSelect, acceptVideo]
   );
@@ -138,7 +151,7 @@ export function MediaUploader({ onFileSelect, disabled, acceptVideo = true }: Me
       {checking ? (
         <>
           <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-          <p className="text-sm font-medium text-foreground">Checking video…</p>
+          <p className="text-sm font-medium text-foreground">{checkingLabel}</p>
         </>
       ) : (
         <>
