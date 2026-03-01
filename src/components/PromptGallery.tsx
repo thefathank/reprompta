@@ -1,6 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, X } from "lucide-react";
+import { Search, X, Copy, Check } from "lucide-react";
 import { prompts } from "@/data/prompts";
 
 const allModels = [...new Set(prompts.map((p) => p.model))];
@@ -10,7 +10,13 @@ export default function PromptGallery() {
   const [search, setSearch] = useState("");
   const [activeModel, setActiveModel] = useState<string | null>(null);
   const [activeTag, setActiveTag] = useState<string | null>(null);
+  const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
 
+  const handleCopy = useCallback((text: string, idx: number) => {
+    navigator.clipboard.writeText(text);
+    setCopiedIdx(idx);
+    setTimeout(() => setCopiedIdx(null), 1500);
+  }, []);
   const filtered = useMemo(() => {
     return prompts.filter((p) => {
       if (activeModel && p.model !== activeModel) return false;
@@ -118,9 +124,16 @@ export default function PromptGallery() {
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.96 }}
                 transition={{ duration: 0.25 }}
-                className="surface-glass rounded-xl border border-border/40 p-5"
+                className="surface-glass rounded-xl border border-border/40 p-5 group relative"
               >
-                <p className="text-sm leading-relaxed text-foreground line-clamp-4">
+                <button
+                  onClick={() => handleCopy(prompt.text, i)}
+                  className="absolute right-3 top-3 rounded-md bg-secondary/80 p-1.5 text-muted-foreground opacity-0 transition-all hover:bg-secondary hover:text-foreground group-hover:opacity-100"
+                  aria-label="Copy prompt"
+                >
+                  {copiedIdx === i ? <Check className="h-3.5 w-3.5 text-accent" /> : <Copy className="h-3.5 w-3.5" />}
+                </button>
+                <p className="text-sm leading-relaxed text-foreground line-clamp-4 pr-8">
                   {prompt.text}
                 </p>
                 <div className="mt-4 flex flex-wrap gap-2">
