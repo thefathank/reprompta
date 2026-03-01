@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { prompts } from "@/data/prompts";
+import PromptGallery from "@/components/PromptGallery";
 
 function LiveCount() {
   const BASE = 37273;
@@ -244,6 +245,8 @@ export default function Index() {
           ))}
         </div>
       </section>
+
+      <PromptGallery />
     </div>
   );
 }
