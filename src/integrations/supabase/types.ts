@@ -59,6 +59,30 @@ export type Database = {
         }
         Relationships: []
       }
+      anon_rate_limits: {
+        Row: {
+          created_at: string
+          id: string
+          ip_address: string
+          request_count: number
+          window_start: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ip_address: string
+          request_count?: number
+          window_start?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ip_address?: string
+          request_count?: number
+          window_start?: string
+        }
+        Relationships: []
+      }
       blog_posts: {
         Row: {
           author: string
@@ -154,7 +178,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      cleanup_stale_rate_limits: { Args: never; Returns: undefined }
     }
     Enums: {
       [_ in never]: never

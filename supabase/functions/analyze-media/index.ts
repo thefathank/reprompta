@@ -18,6 +18,19 @@ const ALLOWED_MODELS = new Set([
 // Max data URI size: 20MB
 const MAX_DATA_URI_SIZE = 20 * 1024 * 1024;
 
+// Anonymous rate limit: max requests per 24h window
+const ANON_MAX_REQUESTS = 3;
+const ANON_WINDOW_HOURS = 24;
+
+function getClientIp(req: Request): string {
+  // Check common proxy headers
+  const forwarded = req.headers.get("x-forwarded-for");
+  if (forwarded) return forwarded.split(",")[0].trim();
+  const realIp = req.headers.get("x-real-ip");
+  if (realIp) return realIp.trim();
+  return "unknown";
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -130,6 +143,55 @@ serve(async (req) => {
           status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
+      }
+
+      // --- Server-side IP rate limiting for anonymous users ---
+      const clientIp = getClientIp(req);
+      const adminClient = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      );
+
+      // Clean up stale entries periodically (best-effort)
+      await adminClient.rpc("cleanup_stale_rate_limits").catch(() => {});
+
+      const windowCutoff = new Date(Date.now() - ANON_WINDOW_HOURS * 60 * 60 * 1000).toISOString();
+
+      // Check existing rate limit record
+      const { data: existing } = await adminClient
+        .from("anon_rate_limits")
+        .select("id, request_count, window_start")
+        .eq("ip_address", clientIp)
+        .single();
+
+      if (existing) {
+        if (existing.window_start > windowCutoff) {
+          // Still within window
+          if (existing.request_count >= ANON_MAX_REQUESTS) {
+            return new Response(JSON.stringify({
+              error: "Rate limit exceeded. Sign up for more analyses.",
+            }), {
+              status: 429,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+          // Increment counter
+          await adminClient
+            .from("anon_rate_limits")
+            .update({ request_count: existing.request_count + 1 })
+            .eq("id", existing.id);
+        } else {
+          // Window expired — reset
+          await adminClient
+            .from("anon_rate_limits")
+            .update({ request_count: 1, window_start: new Date().toISOString() })
+            .eq("id", existing.id);
+        }
+      } else {
+        // First request from this IP
+        await adminClient
+          .from("anon_rate_limits")
+          .insert({ ip_address: clientIp, request_count: 1, window_start: new Date().toISOString() });
       }
     }
 
