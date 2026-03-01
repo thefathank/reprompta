@@ -453,7 +453,32 @@ export default function Analyze() {
             </div>
           )}
 
-          {result && !compareMode && <AnalysisResult data={result} />}
+          {result && !compareMode && (
+            <>
+              <AnalysisResult data={result} />
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3, duration: 0.4 }}
+                className="max-w-2xl rounded-lg border border-accent/20 bg-accent/5 p-6 text-center"
+              >
+                {isAnon ? (
+                  <>
+                    <p className="text-sm font-medium">Curious about another image?</p>
+                    <p className="mt-1 text-xs text-muted-foreground">See what prompt was used to create it.</p>
+                  </>
+                ) : (
+                  <p className="text-sm text-muted-foreground">Ready to analyze another file?</p>
+                )}
+                <button
+                  onClick={() => { setResult(null); setFile(null); }}
+                  className="mt-4 inline-flex h-10 items-center rounded-md bg-accent px-6 text-sm font-semibold text-accent-foreground transition-opacity hover:opacity-90"
+                >
+                  Analyze Another Image
+                </button>
+              </motion.div>
+            </>
+          )}
           {compareMode && hasCompareResults && <ModelComparison results={compareResults} />}
         </div>
       </motion.div>
