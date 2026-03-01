@@ -85,13 +85,13 @@ export default function PromptGallery() {
         </div>
 
         {/* Model filters */}
-        <div className="mb-3 flex flex-wrap gap-2">
-          <span className="mr-1 self-center text-xs font-medium text-muted-foreground">Model:</span>
+        <div className="mb-3 flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+          <span className="mr-1 shrink-0 self-center text-xs font-medium text-muted-foreground">Model:</span>
           {allModels.map((model) => (
             <button
               key={model}
               onClick={() => setActiveModel(activeModel === model ? null : model)}
-              className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+              className={`shrink-0 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
                 activeModel === model
                   ? "bg-accent text-accent-foreground"
                   : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
@@ -103,13 +103,13 @@ export default function PromptGallery() {
         </div>
 
         {/* Tag filters */}
-        <div className="mb-3 flex flex-wrap gap-2">
-          <span className="mr-1 self-center text-xs font-medium text-muted-foreground">Tag:</span>
+        <div className="mb-3 flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+          <span className="mr-1 shrink-0 self-center text-xs font-medium text-muted-foreground">Tag:</span>
           {allTags.map((tag) => (
             <button
               key={tag}
               onClick={() => setActiveTag(activeTag === tag ? null : tag)}
-              className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+              className={`shrink-0 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
                 activeTag === tag
                   ? "bg-accent text-accent-foreground"
                   : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
@@ -121,15 +121,15 @@ export default function PromptGallery() {
         </div>
 
         {/* Technique filters */}
-        <div className="mb-8 flex flex-wrap gap-2">
-          <span className="mr-1 inline-flex items-center gap-1 self-center text-xs font-medium text-muted-foreground">
+        <div className="mb-8 flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+          <span className="mr-1 inline-flex shrink-0 items-center gap-1 self-center text-xs font-medium text-muted-foreground">
             <Lightbulb className="h-3 w-3" /> Technique:
           </span>
           {allTechniques.map((tech) => (
             <button
               key={tech}
               onClick={() => setActiveTechnique(activeTechnique === tech ? null : tech)}
-              className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+              className={`shrink-0 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
                 activeTechnique === tech
                   ? "bg-primary text-primary-foreground"
                   : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
