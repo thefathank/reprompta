@@ -9,6 +9,11 @@ export const modelInfo: Record<string, { description: string; url: string | null
   "Flux 1.1 Pro": { description: "High-fidelity photography and extreme macro detail.", url: "https://blackforestlabs.ai" },
   "Ideogram 2.0": { description: "Typography-heavy design, posters, and text rendering.", url: "https://ideogram.ai" },
   "Firefly 3": { description: "Photorealistic composites with commercial-safe output.", url: "https://www.adobe.com/products/firefly.html" },
+  "GPT-Image": { description: "OpenAI's native image generation with exceptional instruction following and text rendering.", url: "https://openai.com" },
+  "Recraft V3": { description: "Design-focused generation excelling at vector art, icons, and brand assets.", url: "https://www.recraft.ai" },
+  "Leonardo Phoenix": { description: "Versatile creative engine with strong character consistency and stylization.", url: "https://leonardo.ai" },
+  "Kling 1.6": { description: "High-quality video generation with precise motion control from Kuaishou.", url: "https://klingai.com" },
+  "Minimax Video-01": { description: "Fast video generation with expressive character animation.", url: "https://minimaxi.com" },
 };
 
 export const prompts = [
@@ -61,5 +66,30 @@ export const prompts = [
     text: "Photorealistic aerial view of a bioluminescent bay at midnight, shot from a low-altitude drone. The water glows electric blue wherever waves break against the rocky shoreline. A lone kayaker leaves a trail of shimmering turquoise light behind their paddle strokes. The Milky Way stretches overhead, its reflection merging with the glowing plankton below, creating the illusion that the kayaker floats through stars.",
     model: "Firefly 3",
     tags: ["16:9", "photorealistic"],
+  },
+  {
+    text: "A cozy Japanese kissaten (old-school coffee shop) interior rendered in warm analog tones. A porcelain cup of hand-dripped coffee sits on a lacquered wooden counter beside a folded newspaper. Sunlight filters through frosted glass, casting soft caustics across the counter. The barista, an elderly man in a crisp white shirt and bow tie, is mid-pour from a copper kettle. Every surface has visible texture — wood grain, ceramic glaze, fabric weave. Text on the menu board reads 'ブレンド ¥450' in chalk.",
+    model: "GPT-Image",
+    tags: ["1:1", "text-render", "photorealistic"],
+  },
+  {
+    text: "A flat vector logo for a sustainable surf brand called 'Tidal.' The design features a minimalist wave that morphs into a leaf, using only two colors: deep ocean teal and sand beige. The wordmark sits below in a clean geometric sans-serif. Suitable for embroidery on apparel. Delivered on a transparent background with precise anchor points.",
+    model: "Recraft V3",
+    tags: ["1:1", "vector", "logo"],
+  },
+  {
+    text: "A weathered explorer standing at the edge of a floating island, looking down at a sea of clouds below. Massive chain links anchor the island to unseen ground far beneath. The explorer wears layered leather and brass gear, their scarf whipping in the wind. Lush vegetation grows along the island's crumbling cliff edge, roots dangling into the void. Painterly fantasy style with rich golden-hour lighting and visible brushstroke texture.",
+    model: "Leonardo Phoenix",
+    tags: ["16:9", "fantasy", "painterly"],
+  },
+  {
+    text: "A smooth dolly-in shot of a calico cat sitting on a windowsill during a thunderstorm. Lightning briefly illuminates the room, casting sharp shadows. The cat's ears twitch at the thunder. Rain streaks down the glass in the foreground, slightly blurring the city lights beyond. The interior is lit by the warm flicker of a single candle on a nearby bookshelf.",
+    model: "Kling 1.6",
+    tags: ["16:9", "cinematic", "5s"],
+  },
+  {
+    text: "A cheerful cartoon fox barista performing latte art in a bustling forest café. The fox pours steamed milk with exaggerated flair, creating a perfect leaf pattern. Woodland creatures queue behind with tiny cups. The café is built inside a giant hollow oak tree with fairy lights strung across the branches. Smooth 2D animation style with expressive character movement and subtle ambient particles floating through shafts of light.",
+    model: "Minimax Video-01",
+    tags: ["16:9", "animation", "5s"],
   },
 ];
