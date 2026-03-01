@@ -1,21 +1,16 @@
 
 
-## Plan: Expand prompt on click in Prompt Gallery
+## Plan: Reduce Prompt Library footprint with pagination
 
-When a user clicks a prompt card, open a Dialog showing the full prompt text (currently truncated via `line-clamp-4`), along with the model badge, tags, and the copy button.
+Currently all ~30 prompts render at once in a 3-column grid, making the section very tall. The fix: **paginate the grid to show 6 prompts per page** (2 rows of 3), with simple Previous/Next controls below.
 
 ### Changes
 
 **`src/components/PromptGallery.tsx`**
-- Import `Dialog`, `DialogContent`, `DialogHeader`, `DialogTitle`, `DialogDescription` from `@/components/ui/dialog`
-- Add `selectedPrompt` state (`number | null`)
-- Make each prompt card clickable (set `selectedPrompt` on click, exclude the copy button via `stopPropagation`)
-- Render a Dialog that shows:
-  - Full prompt text (no `line-clamp`)
-  - Model badge with existing HoverCard
-  - Tags
-  - Copy button
-- Add `cursor-pointer` to prompt cards
+- Add `page` state (starts at 0), reset to 0 whenever filters or search change
+- Slice `filtered` to show only 6 items per page: `filtered.slice(page * 6, page * 6 + 6)`
+- Render a small pagination bar below the grid with Previous/Next buttons and a "Page X of Y" label (using the existing `Pagination` UI components or simple buttons)
+- Reduce vertical padding on the section (`py-28` → `py-16`) for a tighter feel
 
-No new files or dependencies needed — uses the existing Dialog and HoverCard components.
+No new files or dependencies needed.
 
