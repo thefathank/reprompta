@@ -1,16 +1,17 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { MediaUploader } from "@/components/MediaUploader";
 import { AnalysisResult } from "@/components/AnalysisResult";
 import { ModelComparison, type ModelResult } from "@/components/ModelComparison";
+import { SignupGateway } from "@/components/SignupGateway";
 import { toast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 import { Loader2, Lock, Sparkles } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { getTierByProductId, getTierKey } from "@/lib/subscription";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import {
   Dialog,
   DialogContent,
@@ -18,6 +19,8 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+
+// --- Types ---
 
 interface AnalysisData {
   recovered_prompt: string;
@@ -34,11 +37,42 @@ interface UsageData {
   usage_reset_at: string;
 }
 
+// --- Constants ---
+
+const LOCAL_KEY = "reprompta_free_analyses";
+
 const COMPARE_MODELS = [
   { model: "google/gemini-2.5-flash", label: "Gemini 2.5 Flash" },
   { model: "google/gemini-2.5-pro", label: "Gemini 2.5 Pro" },
   { model: "google/gemini-3-flash-preview", label: "Gemini 3 Flash" },
 ];
+
+// --- Helpers ---
+
+function getAnonUsage(): number {
+  try {
+    return parseInt(localStorage.getItem(LOCAL_KEY) || "0", 10);
+  } catch {
+    return 0;
+  }
+}
+
+function incrementAnonUsage() {
+  try {
+    localStorage.setItem(LOCAL_KEY, String(getAnonUsage() + 1));
+  } catch {}
+}
+
+async function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// --- Sub-components ---
 
 function UsageBar({ label, used, total, suffix }: { label: string; used: number; total: number; suffix: string }) {
   const remaining = Math.max(0, total - used);
@@ -67,18 +101,21 @@ function UsageBar({ label, used, total, suffix }: { label: string; used: number;
   );
 }
 
+// --- Main ---
+
 export default function Analyze() {
   const { user, subscription, checkSubscription } = useAuth();
-  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [file, setFile] = useState<File | null>(null);
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
+  const [showGateway, setShowGateway] = useState(false);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AnalysisData | null>(null);
   const [compareMode, setCompareMode] = useState(false);
   const [compareResults, setCompareResults] = useState<ModelResult[]>([]);
   const [usage, setUsage] = useState<UsageData | null>(null);
 
+  const isAnon = !user;
   const tier = getTierByProductId(subscription.productId);
   const tierKey = getTierKey(subscription.productId);
 
@@ -89,8 +126,8 @@ export default function Analyze() {
     }
   }, [searchParams, checkSubscription]);
 
-  // Fetch usage
-  const fetchUsage = async () => {
+  // Fetch usage for logged-in users
+  const fetchUsage = useCallback(async () => {
     if (!user) return;
     const { data } = await supabase
       .from("profiles")
@@ -98,11 +135,9 @@ export default function Analyze() {
       .eq("user_id", user.id)
       .single();
     if (data) {
-      // Check if we need to reset (different month)
       const resetDate = new Date(data.usage_reset_at);
       const now = new Date();
       if (resetDate.getMonth() !== now.getMonth() || resetDate.getFullYear() !== now.getFullYear()) {
-        // Reset counters
         await supabase
           .from("profiles")
           .update({ image_analyses_used: 0, video_analyses_used: 0, usage_reset_at: now.toISOString() })
@@ -112,9 +147,9 @@ export default function Analyze() {
         setUsage(data as UsageData);
       }
     }
-  };
+  }, [user]);
 
-  useEffect(() => { fetchUsage(); }, [user]);
+  useEffect(() => { fetchUsage(); }, [fetchUsage]);
 
   const isImage = file?.type.startsWith("image");
   const isVideo = file?.type.startsWith("video");
@@ -122,71 +157,94 @@ export default function Analyze() {
   const imagesUsed = usage?.image_analyses_used ?? 0;
   const videosUsed = usage?.video_analyses_used ?? 0;
 
+  // Check if analysis is allowed
   const canAnalyze = (() => {
-    if (!usage) return true; // loading
-    if (tier.lifetime) {
-      // Free tier: lifetime limit
-      return imagesUsed < tier.images;
-    }
-    if (isVideo) {
-      return videosUsed < tier.videos;
-    }
+    if (isAnon) return getAnonUsage() < 1;
+    if (!usage) return true;
+    if (tier.lifetime) return imagesUsed < tier.images;
+    if (isVideo) return videosUsed < tier.videos;
     return tier.images === Infinity || imagesUsed < tier.images;
   })();
 
-  const uploadFile = async () => {
+  // --- Upload helpers ---
+
+  const uploadFileForUser = async (): Promise<{ publicUrl: string; mediaType: string } | null> => {
     if (!file || !user) return null;
     const ext = file.name.split(".").pop();
     const filePath = `${user.id}/${Date.now()}.${ext}`;
-    const { error: uploadError } = await supabase.storage
-      .from("media-uploads")
-      .upload(filePath, file);
+    const { error: uploadError } = await supabase.storage.from("media-uploads").upload(filePath, file);
     if (uploadError) throw uploadError;
-    const { data: { publicUrl } } = supabase.storage
-      .from("media-uploads")
-      .getPublicUrl(filePath);
+    const { data: { publicUrl } } = supabase.storage.from("media-uploads").getPublicUrl(filePath);
     return { publicUrl, mediaType: file.type.startsWith("image") ? "image" : "video" };
+  };
+
+  const getMediaForAnon = async (): Promise<{ mediaUrl: string; mediaType: string }> => {
+    if (!file) throw new Error("No file");
+    const dataUrl = await fileToDataUrl(file);
+    return { mediaUrl: dataUrl, mediaType: file.type.startsWith("image") ? "image" : "video" };
   };
 
   const incrementUsage = async (mediaType: string) => {
     if (!user) return;
     const field = mediaType === "image" ? "image_analyses_used" : "video_analyses_used";
     const current = mediaType === "image" ? imagesUsed : videosUsed;
-    await supabase
-      .from("profiles")
-      .update({ [field]: current + 1 })
-      .eq("user_id", user.id);
+    await supabase.from("profiles").update({ [field]: current + 1 }).eq("user_id", user.id);
     setUsage((prev) => prev ? { ...prev, [field]: current + 1 } : prev);
   };
 
+  // --- Analysis ---
+
   const analyzeSingle = async () => {
-    if (!file || !user) return;
+    if (!file) return;
+
+    // Gate check for anonymous users
+    if (isAnon && getAnonUsage() >= 1) {
+      setShowGateway(true);
+      return;
+    }
+
     setLoading(true);
     setResult(null);
     try {
-      const upload = await uploadFile();
-      if (!upload) return;
+      let mediaUrl: string;
+      let mediaType: string;
+
+      if (isAnon) {
+        const media = await getMediaForAnon();
+        mediaUrl = media.mediaUrl;
+        mediaType = media.mediaType;
+      } else {
+        const upload = await uploadFileForUser();
+        if (!upload) return;
+        mediaUrl = upload.publicUrl;
+        mediaType = upload.mediaType;
+      }
 
       const { data: fnData, error: fnError } = await supabase.functions.invoke("analyze-media", {
-        body: { mediaUrl: upload.publicUrl, mediaType: upload.mediaType },
+        body: { mediaUrl, mediaType },
       });
       if (fnError) throw fnError;
       const analysis = fnData as AnalysisData;
 
-      await supabase.from("analyses").insert([{
-        user_id: user.id,
-        media_url: upload.publicUrl,
-        media_type: upload.mediaType,
-        file_name: file.name,
-        recovered_prompt: analysis.recovered_prompt,
-        model_guess: analysis.model_guess,
-        settings: analysis.settings as any,
-        style_tags: analysis.style_tags,
-        copy_ready_prompts: analysis.copy_ready_prompts as any,
-        full_breakdown: analysis as any,
-      }]);
+      // Save for logged-in users only
+      if (user) {
+        await supabase.from("analyses").insert([{
+          user_id: user.id,
+          media_url: mediaUrl,
+          media_type: mediaType,
+          file_name: file.name,
+          recovered_prompt: analysis.recovered_prompt,
+          model_guess: analysis.model_guess,
+          settings: analysis.settings as any,
+          style_tags: analysis.style_tags,
+          copy_ready_prompts: analysis.copy_ready_prompts as any,
+          full_breakdown: analysis as any,
+        }]);
+        await incrementUsage(mediaType);
+      } else {
+        incrementAnonUsage();
+      }
 
-      await incrementUsage(upload.mediaType);
       setResult(analysis);
     } catch (err: any) {
       toast({ title: "Analysis failed", description: err.message, variant: "destructive" });
@@ -201,16 +259,12 @@ export default function Analyze() {
     setResult(null);
 
     const initial: ModelResult[] = COMPARE_MODELS.map((m) => ({
-      ...m,
-      data: null,
-      error: null,
-      loading: true,
-      durationMs: null,
+      ...m, data: null, error: null, loading: true, durationMs: null,
     }));
     setCompareResults(initial);
 
     try {
-      const upload = await uploadFile();
+      const upload = await uploadFileForUser();
       if (!upload) return;
 
       const promises = COMPARE_MODELS.map(async (m, idx) => {
@@ -243,17 +297,15 @@ export default function Analyze() {
 
   const hasCompareResults = compareResults.some((r) => r.data || r.error);
 
-  // Quota display
-  const quotaText = (() => {
-    if (tier.lifetime) {
-      return `${imagesUsed} of ${tier.images} analysis used`;
+  // --- Handle analyze click ---
+  const handleAnalyze = () => {
+    if (isAnon && getAnonUsage() >= 1) {
+      setShowGateway(true);
+      return;
     }
-    const parts: string[] = [];
-    if (tier.images !== Infinity) parts.push(`${imagesUsed} of ${tier.images} images`);
-    else parts.push("Unlimited images");
-    parts.push(`${videosUsed} of ${tier.videos} videos`);
-    return parts.join(" · ") + " this month";
-  })();
+    if (compareMode) analyzeCompare();
+    else analyzeSingle();
+  };
 
   return (
     <div className="min-h-screen px-6 pt-24 pb-16 lg:px-16">
@@ -268,58 +320,57 @@ export default function Analyze() {
           Upload an AI-generated image or video to recover its prompt.
         </p>
 
-        {/* Usage progress bars */}
-        {usage && (
+        {/* Usage bars — only for logged-in users */}
+        {!isAnon && usage && (
           <div className="mt-4 max-w-sm space-y-3">
-            {/* Images */}
             {tier.images !== Infinity ? (
-              <UsageBar
-                label="Images"
-                used={imagesUsed}
-                total={tier.images}
-                suffix={tier.lifetime ? "total" : "this month"}
-              />
+              <UsageBar label="Images" used={imagesUsed} total={tier.images} suffix={tier.lifetime ? "total" : "this month"} />
             ) : (
               <div className="flex items-center justify-between text-xs text-muted-foreground">
                 <span>Images</span>
                 <span className="font-medium text-foreground">Unlimited</span>
               </div>
             )}
-            {/* Videos — only show for paid tiers */}
             {tier.videos > 0 && (
-              <UsageBar
-                label="Videos"
-                used={videosUsed}
-                total={tier.videos}
-                suffix="this month"
-              />
+              <UsageBar label="Videos" used={videosUsed} total={tier.videos} suffix="this month" />
             )}
           </div>
         )}
 
-        {/* Compare toggle — always visible */}
-        <div className="mt-6 flex items-center gap-3">
-          <Switch
-            id="compare-mode"
-            checked={compareMode}
-            onCheckedChange={(v) => {
-              if (!tier.compare) {
-                setShowUpgradeDialog(true);
-                return;
-              }
-              setCompareMode(v);
-              setResult(null);
-              setCompareResults([]);
-            }}
-            disabled={loading}
-          />
-          <Label htmlFor="compare-mode" className="text-sm font-medium flex items-center gap-1.5">
-            Compare models
-            {!tier.compare && <Lock className="h-3 w-3 text-muted-foreground" />}
-          </Label>
-        </div>
+        {/* Anonymous usage hint */}
+        {isAnon && (
+          <p className="mt-4 text-xs text-muted-foreground">
+            {getAnonUsage() < 1
+              ? "Try one free analysis — no account required."
+              : "Sign up to keep analyzing."}
+          </p>
+        )}
 
-        {/* Upgrade dialog */}
+        {/* Compare toggle — only for logged-in users */}
+        {!isAnon && (
+          <div className="mt-6 flex items-center gap-3">
+            <Switch
+              id="compare-mode"
+              checked={compareMode}
+              onCheckedChange={(v) => {
+                if (!tier.compare) {
+                  setShowUpgradeDialog(true);
+                  return;
+                }
+                setCompareMode(v);
+                setResult(null);
+                setCompareResults([]);
+              }}
+              disabled={loading}
+            />
+            <Label htmlFor="compare-mode" className="text-sm font-medium flex items-center gap-1.5">
+              Compare models
+              {!tier.compare && <Lock className="h-3 w-3 text-muted-foreground" />}
+            </Label>
+          </div>
+        )}
+
+        {/* Upgrade dialog for compare */}
         <Dialog open={showUpgradeDialog} onOpenChange={setShowUpgradeDialog}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
@@ -338,18 +389,21 @@ export default function Analyze() {
               >
                 Maybe later
               </button>
-              <button
-                onClick={() => navigate("/pricing")}
+              <a
+                href="/pricing"
                 className="flex h-10 items-center rounded-md bg-accent px-5 text-sm font-semibold text-accent-foreground transition-opacity hover:opacity-90"
               >
                 View Plans
-              </button>
+              </a>
             </div>
           </DialogContent>
         </Dialog>
 
+        {/* Signup gateway for anonymous users */}
+        <SignupGateway open={showGateway} onOpenChange={setShowGateway} />
+
         {/* Video gate for free tier */}
-        {tierKey === "free" && (
+        {!isAnon && tierKey === "free" && (
           <p className="mt-2 text-xs text-muted-foreground">
             Video analysis is available on paid plans.
           </p>
@@ -360,25 +414,25 @@ export default function Analyze() {
             <MediaUploader
               onFileSelect={setFile}
               disabled={loading}
-              acceptVideo={tierKey !== "free"}
+              acceptVideo={!isAnon && tierKey !== "free"}
             />
           </div>
 
-          {file && !canAnalyze && (
+          {file && !canAnalyze && !isAnon && (
             <div className="flex max-w-2xl flex-col items-center gap-3 rounded-lg border border-accent/20 bg-accent/5 p-6 text-center">
               <p className="text-sm font-medium">You've reached your analysis limit</p>
-              <button
-                onClick={() => navigate("/pricing")}
+              <a
+                href="/pricing"
                 className="flex h-10 items-center rounded-md bg-accent px-6 text-sm font-semibold text-accent-foreground transition-opacity hover:opacity-90"
               >
                 Upgrade Plan
-              </button>
+              </a>
             </div>
           )}
 
-          {file && canAnalyze && !result && !hasCompareResults && (
+          {file && (canAnalyze || isAnon) && !result && !hasCompareResults && (
             <button
-              onClick={compareMode ? analyzeCompare : analyzeSingle}
+              onClick={handleAnalyze}
               disabled={loading}
               className="flex h-11 w-full max-w-2xl items-center justify-center gap-2 rounded-md bg-foreground text-sm font-semibold text-background transition-opacity hover:opacity-90 disabled:opacity-50"
             >

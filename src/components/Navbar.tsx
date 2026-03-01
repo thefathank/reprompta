@@ -15,11 +15,11 @@ export function Navbar() {
       <Link to="/pricing" className="transition-colors hover:text-foreground" onClick={() => setOpen(false)}>
         Pricing
       </Link>
+      <Link to="/analyze" className="transition-colors hover:text-foreground" onClick={() => setOpen(false)}>
+        Analyze
+      </Link>
       {user ? (
         <>
-          <Link to="/analyze" className="transition-colors hover:text-foreground" onClick={() => setOpen(false)}>
-            Analyze
-          </Link>
           <Link to="/history" className="transition-colors hover:text-foreground" onClick={() => setOpen(false)}>
             History
           </Link>
