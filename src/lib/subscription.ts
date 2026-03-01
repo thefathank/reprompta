@@ -26,8 +26,8 @@ export const TIERS: Record<string, TierConfig> = {
   },
   basic: {
     name: "Basic",
-    product_id: "prod_U3hMrxdHEu2IHx",
-    price_id: "price_1T5ZxnRl01KtqeKQno6cWnhM",
+    product_id: "prod_U4MJwRZbJp7Nid",
+    price_id: "price_1T6Db6Dab7guoXOTw2qzpWhg",
     images: 10,
     videos: 1,
     history: true,
@@ -37,8 +37,8 @@ export const TIERS: Record<string, TierConfig> = {
   },
   pro: {
     name: "Pro",
-    product_id: "prod_U3hPjfcoCqFHnj",
-    price_id: "price_1T5a0fRl01KtqeKQGUiGSBQm",
+    product_id: "prod_U4MKifk1TpNOWD",
+    price_id: "price_1T6DbSDab7guoXOTqb7hBGFM",
     images: Infinity,
     videos: 5,
     history: true,
