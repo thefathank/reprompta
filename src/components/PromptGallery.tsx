@@ -1,17 +1,19 @@
 import { useState, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, X, Copy, Check } from "lucide-react";
+import { Search, X, Copy, Check, Lightbulb } from "lucide-react";
 import { prompts, modelInfo } from "@/data/prompts";
 import { HoverCard, HoverCardTrigger, HoverCardContent } from "@/components/ui/hover-card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 const allModels = [...new Set(prompts.map((p) => p.model))];
 const allTags = [...new Set(prompts.flatMap((p) => p.tags))];
+const allTechniques = [...new Set(prompts.flatMap((p) => p.techniques ?? []))];
 
 export default function PromptGallery() {
   const [search, setSearch] = useState("");
   const [activeModel, setActiveModel] = useState<string | null>(null);
   const [activeTag, setActiveTag] = useState<string | null>(null);
+  const [activeTechnique, setActiveTechnique] = useState<string | null>(null);
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
   const [selectedPrompt, setSelectedPrompt] = useState<number | null>(null);
 
@@ -24,25 +26,28 @@ export default function PromptGallery() {
     return prompts.filter((p) => {
       if (activeModel && p.model !== activeModel) return false;
       if (activeTag && !p.tags.includes(activeTag)) return false;
+      if (activeTechnique && !(p.techniques ?? []).includes(activeTechnique)) return false;
       if (search) {
         const q = search.toLowerCase();
         return (
           p.text.toLowerCase().includes(q) ||
           p.model.toLowerCase().includes(q) ||
-          p.tags.some((t) => t.toLowerCase().includes(q))
+          p.tags.some((t) => t.toLowerCase().includes(q)) ||
+          (p.techniques ?? []).some((t) => t.toLowerCase().includes(q))
         );
       }
       return true;
     });
-  }, [search, activeModel, activeTag]);
+  }, [search, activeModel, activeTag, activeTechnique]);
 
   const clearFilters = () => {
     setSearch("");
     setActiveModel(null);
     setActiveTag(null);
+    setActiveTechnique(null);
   };
 
-  const hasFilters = search || activeModel || activeTag;
+  const hasFilters = search || activeModel || activeTag || activeTechnique;
 
   return (
     <section className="border-t border-border px-6 py-28 lg:px-16">
@@ -84,7 +89,7 @@ export default function PromptGallery() {
         </div>
 
         {/* Tag filters */}
-        <div className="mb-8 flex flex-wrap gap-2">
+        <div className="mb-3 flex flex-wrap gap-2">
           <span className="mr-1 self-center text-xs font-medium text-muted-foreground">Tag:</span>
           {allTags.map((tag) => (
             <button
@@ -97,6 +102,26 @@ export default function PromptGallery() {
               }`}
             >
               {tag}
+            </button>
+          ))}
+        </div>
+
+        {/* Technique filters */}
+        <div className="mb-8 flex flex-wrap gap-2">
+          <span className="mr-1 inline-flex items-center gap-1 self-center text-xs font-medium text-muted-foreground">
+            <Lightbulb className="h-3 w-3" /> Technique:
+          </span>
+          {allTechniques.map((tech) => (
+            <button
+              key={tech}
+              onClick={() => setActiveTechnique(activeTechnique === tech ? null : tech)}
+              className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                activeTechnique === tech
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+              }`}
+            >
+              {tech}
             </button>
           ))}
         </div>
@@ -145,11 +170,13 @@ export default function PromptGallery() {
                     {prompt.model}
                   </span>
                   {prompt.tags.map((tag) => (
-                    <span
-                      key={tag}
-                      className="rounded bg-secondary px-2.5 py-1 text-xs text-secondary-foreground"
-                    >
+                    <span key={tag} className="rounded bg-secondary px-2.5 py-1 text-xs text-secondary-foreground">
                       {tag}
+                    </span>
+                  ))}
+                  {(prompt.techniques ?? []).map((tech) => (
+                    <span key={tech} className="inline-flex items-center gap-1 rounded bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
+                      <Lightbulb className="h-2.5 w-2.5" />{tech}
                     </span>
                   ))}
                 </div>
@@ -209,6 +236,11 @@ export default function PromptGallery() {
                   {prompt.tags.map((tag) => (
                     <span key={tag} className="rounded bg-secondary px-2.5 py-1 text-xs text-secondary-foreground">
                       {tag}
+                    </span>
+                  ))}
+                  {(prompt.techniques ?? []).map((tech) => (
+                    <span key={tech} className="inline-flex items-center gap-1 rounded bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
+                      <Lightbulb className="h-2.5 w-2.5" />{tech}
                     </span>
                   ))}
                   <button
