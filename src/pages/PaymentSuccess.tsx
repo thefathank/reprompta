@@ -27,6 +27,9 @@ export default function PaymentSuccess() {
     }
   };
 
+  const subscribedRef = useRef(subscription.subscribed);
+  subscribedRef.current = subscription.subscribed;
+
   useEffect(() => {
     let attempts = 0;
     const maxAttempts = 10;
@@ -34,8 +37,8 @@ export default function PaymentSuccess() {
     const poll = async () => {
       await checkSubscription();
       attempts++;
-      // Keep polling until subscribed or max attempts
-      if (!subscription.subscribed && attempts < maxAttempts) {
+      // Use ref to get current value, not stale closure
+      if (!subscribedRef.current && attempts < maxAttempts) {
         setTimeout(poll, 2000);
       } else {
         setRefreshing(false);

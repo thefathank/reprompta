@@ -77,7 +77,13 @@ serve(async (req) => {
 
     if (hasActiveSub) {
       const subscription = subscriptions.data[0];
-      subscriptionEnd = new Date(subscription.current_period_end * 1000).toISOString();
+      // Handle current_period_end as either unix timestamp (number) or date string
+      const periodEnd = subscription.current_period_end;
+      if (typeof periodEnd === "number") {
+        subscriptionEnd = new Date(periodEnd * 1000).toISOString();
+      } else if (periodEnd) {
+        subscriptionEnd = new Date(periodEnd).toISOString();
+      }
       productId = subscription.items.data[0].price.product;
       logStep("Active subscription found", { productId, subscriptionEnd });
     } else {
