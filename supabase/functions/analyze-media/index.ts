@@ -6,7 +6,7 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 function getCorsHeaders(req: Request) {
   const origin = req.headers.get("origin") || "";
   const allowed =
-    origin.endsWith(".lovable.app") || origin.startsWith("http://localhost:");
+    origin.endsWith(".lovable.app") || origin.endsWith(".lovableproject.com") || origin.startsWith("http://localhost:");
   return {
     "Access-Control-Allow-Origin": allowed
       ? origin
