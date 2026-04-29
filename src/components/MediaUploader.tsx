@@ -46,7 +46,7 @@ export function MediaUploader({ onFileSelect, disabled, acceptVideo = true }: Me
     const allowed = acceptVideo ? ALL_TYPES : ACCEPTED.image;
     if (!allowed.includes(file.type)) {
       if (!acceptVideo && ACCEPTED.video.includes(file.type)) {
-        toast({ title: "Video not available", description: "Upgrade your plan to analyze videos.", variant: "destructive" });
+        toast({ title: "Sign in to analyze videos", description: "Video analysis is available to signed-in users.", variant: "destructive" });
       }
       return;
     }
