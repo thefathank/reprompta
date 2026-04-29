@@ -235,118 +235,7 @@ serve(async (req) => {
       }
     }
 
-    // --- Server-side tier enforcement for authenticated users ---
-    if (isAuthenticated && userId) {
-      const { data: profile } = await adminClient
-        .from("profiles")
-        .select(
-          "image_analyses_used, video_analyses_used, usage_reset_at, email"
-        )
-        .eq("user_id", userId)
-        .single();
-
-      if (!profile) {
-        return new Response(
-          JSON.stringify({ error: "User profile not found" }),
-          {
-            status: 400,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
-        );
-      }
-
-      // Determine subscription tier
-      let productId: string | null = null;
-
-      if (DEV_PRO_EMAILS.includes(profile.email || "")) {
-        productId = "prod_U4MKifk1TpNOWD";
-      } else {
-        const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
-        if (stripeKey && profile.email) {
-          const stripe = new Stripe(stripeKey, {
-            apiVersion: "2025-08-27.basil",
-          });
-          const customers = await stripe.customers.list({
-            email: profile.email,
-            limit: 1,
-          });
-          if (customers.data.length > 0) {
-            const subs = await stripe.subscriptions.list({
-              customer: customers.data[0].id,
-              status: "active",
-              limit: 1,
-            });
-            if (subs.data.length > 0) {
-              productId = subs.data[0].items.data[0].price.product as string;
-            }
-          }
-        }
-      }
-
-      const tierLimits = productId
-        ? TIER_LIMITS[productId] || FREE_LIMITS
-        : FREE_LIMITS;
-      const isLifetime = !productId; // free tier is lifetime
-
-      // Handle monthly reset for subscribed users
-      let imageUsage = profile.image_analyses_used;
-      let videoUsage = profile.video_analyses_used;
-
-      if (!isLifetime) {
-        const resetDate = new Date(profile.usage_reset_at);
-        const now = new Date();
-        if (
-          resetDate.getMonth() !== now.getMonth() ||
-          resetDate.getFullYear() !== now.getFullYear()
-        ) {
-          imageUsage = 0;
-          videoUsage = 0;
-          await adminClient
-            .from("profiles")
-            .update({
-              image_analyses_used: 0,
-              video_analyses_used: 0,
-              usage_reset_at: now.toISOString(),
-            })
-            .eq("user_id", userId);
-        }
-      }
-
-      // Enforce limits
-      if (mediaType === "video" && videoUsage >= tierLimits.videos) {
-        return new Response(
-          JSON.stringify({
-            error: "Video analysis limit reached. Upgrade your plan.",
-          }),
-          {
-            status: 429,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
-        );
-      }
-      if (mediaType === "image" && imageUsage >= tierLimits.images) {
-        return new Response(
-          JSON.stringify({
-            error: "Image analysis limit reached. Upgrade your plan.",
-          }),
-          {
-            status: 429,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
-        );
-      }
-
-      // Increment usage BEFORE AI call (prevents race conditions)
-      const field =
-        mediaType === "image"
-          ? "image_analyses_used"
-          : "video_analyses_used";
-      const currentVal = mediaType === "image" ? imageUsage : videoUsage;
-      await adminClient
-        .from("profiles")
-        .update({ [field]: currentVal + 1 })
-        .eq("user_id", userId);
-    }
+    // Reprompta is fully free — no per-user limits enforced for authenticated users.
 
     // --- AI Analysis ---
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -479,28 +368,6 @@ Be thorough and specific. Analyze composition, lighting, style, color palette, s
     if (!response.ok) {
       const errText = await response.text();
       console.error("AI gateway error:", response.status, errText);
-
-      // Rollback usage on AI failure for authenticated users
-      if (isAuthenticated && userId) {
-        const field =
-          mediaType === "image"
-            ? "image_analyses_used"
-            : "video_analyses_used";
-        const { data: currentProfile } = await adminClient
-          .from("profiles")
-          .select(field)
-          .eq("user_id", userId)
-          .single();
-        if (currentProfile) {
-          const currentVal = (currentProfile as any)[field];
-          if (currentVal > 0) {
-            await adminClient
-              .from("profiles")
-              .update({ [field]: currentVal - 1 })
-              .eq("user_id", userId);
-          }
-        }
-      }
 
       if (response.status === 429) {
         return new Response(
