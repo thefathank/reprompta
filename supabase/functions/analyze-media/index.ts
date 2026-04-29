@@ -30,13 +30,8 @@ const MAX_DATA_URI_SIZE = 20 * 1024 * 1024;
 const ANON_MAX_REQUESTS = 3;
 const ANON_WINDOW_HOURS = 24;
 
-// Tier limits (server-side enforcement)
-const TIER_LIMITS: Record<string, { images: number; videos: number }> = {
-  "prod_U4MJwRZbJp7Nid": { images: 10, videos: 1 }, // Basic
-  "prod_U4MKifk1TpNOWD": { images: 999999, videos: 5 }, // Pro
-};
-const FREE_LIMITS = { images: 1, videos: 0, lifetime: true };
-const DEV_PRO_EMAILS = ["harmistead@gmail.com"];
+// Reprompta is fully free — no per-tier limits for authenticated users.
+// Anonymous users are still capped by IP-based rate limiting above to prevent abuse.
 
 function getClientIp(req: Request): string {
   const forwarded = req.headers.get("x-forwarded-for");
